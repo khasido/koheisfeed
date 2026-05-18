@@ -75,7 +75,7 @@ def get_status(soup):
 def parse_show_page(url):
     html = fetch(url)
     soup = BeautifulSoup(html, "lxml")
-status = get_status(soup)
+    status = get_status(soup)
 
     title_el = soup.find("h1")
     title = title_el.get_text(strip=True) if title_el else url
@@ -245,7 +245,7 @@ def main():
             # Only include ongoing or upcoming shows
             status = data.get("status", "")
             if status not in ["completed", "finished", "ended"]:
-            items.append(data)
+                items.append(data)
 
         except Exception as exc:
             print(f"Error parsing {url}: {exc}")
