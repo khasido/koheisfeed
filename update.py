@@ -1,3 +1,4 @@
+import hashlib
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime, timezone
@@ -9,6 +10,9 @@ import json
 LIST_URL = "https://mydramalist.com/list/3kPbQnZ4"
 BASE_URL = "https://mydramalist.com"
 MAX_ITEMS = 100
+FEED_TITLE = "Ongoing and Upcoming BLs"
+FEED_DESCRIPTION = "Auto-generated feed from MyDramaList list 3kPbQnZ4"
+FEED_LINK = LIST_URL
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (compatible; BL-RSS-Bot/1.0)"
@@ -37,6 +41,23 @@ def parse_list_page(html):
 
     return show_links
 
+def parse_meta_description(soup):
+    """Try meta description fallback for show synopsis."""
+    meta = soup.find("meta", attrs={"name": "description"})
+    if meta and meta.get("content"):
+        return meta["content"].strip()
+
+    og_desc = soup.find("meta", property="og:description")
+    if og_desc and og_desc.get("content"):
+        return og_desc["content"].strip()
+
+    return None
+
+
+def safe_text(element):
+    return element.get_text(" ", strip=True) if element else None
+
+
 def get_text_after_label(soup, label):
     """Extract text after a labeled field in list items."""
     for li in soup.find_all("li", {"class": "list-item"}):
@@ -53,13 +74,11 @@ def get_text_after_label(soup, label):
 def parse_next_episode_date(html):
     """Extract next episode air date from JavaScript variable in the page."""
     try:
-        # Look for the nextEpisodeAiring JavaScript variable
-        match = re.search(r'var nextEpisodeAiring = ({[^}]+});', html)
+        match = re.search(r'var nextEpisodeAiring\s*=\s*({.*?});', html, re.DOTALL)
         if match:
             data = json.loads(match.group(1))
             if 'released_at' in data:
                 timestamp = int(data['released_at'])
-                # Convert Unix timestamp to datetime
                 dt = datetime.fromtimestamp(timestamp, tz=timezone.utc)
                 return dt.strftime("%b %d, %Y")
     except (ValueError, KeyError, json.JSONDecodeError):
@@ -70,24 +89,47 @@ def parse_show_page(url):
     html = fetch(url)
     soup = BeautifulSoup(html, "lxml")
 
+    title = None
     title_el = soup.find("h1")
-    title = title_el.get_text(strip=True) if title_el else url
+    if title_el:
+        title = safe_text(title_el)
+    else:
+        og_title = soup.find("meta", property="og:title")
+        if og_title and og_title.get("content"):
+            title = og_title["content"].strip()
+
+    if not title:
+        title = url
 
     poster = None
-    img = soup.select_one("img[src*='mydramalist.com'][class*='cover']")
-    if img and img.get("src"):
-        poster = img["src"]
+    for selector in ("img.cover", "img[src*='mydramalist.com']", "img[src*='mydramalist']"):
+        img = soup.select_one(selector)
+        if img and img.get("src"):
+            poster = img["src"].strip()
+            break
+    if poster and poster.startswith("//"):
+        poster = f"https:{poster}"
 
     country = get_text_after_label(soup, "Country:")
     episodes = get_text_after_label(soup, "Episodes:")
     air_date_str = get_text_after_label(soup, "Aired:")
     next_ep_date = parse_next_episode_date(html)
-    
-    # Extract synopsis from first paragraph
+
     synopsis = None
-    p = soup.find("p")
-    if p:
-        synopsis = p.get_text(strip=True)
+    synopsis_selectors = [
+        "div.storyline p",
+        "div.synopsis p",
+        "section.show__description p",
+        "div.content p",
+    ]
+    for selector in synopsis_selectors:
+        p = soup.select_one(selector)
+        if p and p.get_text(strip=True):
+            synopsis = p.get_text(" ", strip=True)
+            break
+
+    if not synopsis:
+        synopsis = parse_meta_description(soup)
 
     countdown_str = None
     if next_ep_date:
@@ -196,30 +238,35 @@ def build_rss(items):
             )
             enclosure_tag = f"\n    <enclosure url=\"{it['poster']}\" type=\"{mime_type}\" />"
 
+        guid = hashlib.sha256(it['url'].encode('utf-8')).hexdigest()
+        pub_date = format_rfc2822(it['air_date'] or it['next_ep_date'])
         item_xml = (
             "  <item>\n"
             f"    <title>{it['title']}</title>\n"
             f"    <link>{it['url']}</link>\n"
+            f"    <guid isPermaLink=\"false\">{guid}</guid>\n"
+            f"    <pubDate>{pub_date}</pubDate>\n"
             f"    <description><![CDATA[{description_html}]]></description>\n"
-            f"    <pubDate>{format_rfc2822(it['air_date'] or it['next_ep_date'])}</pubDate>"
+            f"    <content:encoded><![CDATA[{description_html}]]></content:encoded>\n"
             f"{media_tag}{enclosure_tag}\n"
             "  </item>"
         )
         rss_items.append(item_xml)
 
     rss_body = "\n".join(rss_items)
-    return (
+    channel_header = (
         "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-        "<rss version=\"2.0\" xmlns:media=\"http://search.yahoo.com/mrss/\">\n"
+        "<rss version=\"2.0\" xmlns:media=\"http://search.yahoo.com/mrss/\" xmlns:content=\"http://purl.org/rss/1.0/modules/content/\">\n"
         "<channel>\n"
-        "  <title>Ongoing and Upcoming BLs</title>\n"
-        f"  <link>{LIST_URL}</link>\n"
-        "  <description>Auto-generated feed from MyDramaList list 3kPbQnZ4</description>\n"
+        f"  <title>{FEED_TITLE}</title>\n"
+        f"  <link>{FEED_LINK}</link>\n"
+        f"  <description>{FEED_DESCRIPTION}</description>\n"
+        "  <language>en-US</language>\n"
+        "  <generator>BL-RSS Auto Generator</generator>\n"
         f"  <lastBuildDate>{now}</lastBuildDate>\n"
-        f"{rss_body}\n"
-        "</channel>\n"
-        "</rss>\n"
     )
+
+    return f"{channel_header}{rss_body}\n</channel>\n</rss>\n"
 
 def main():
     list_html = fetch(LIST_URL)
