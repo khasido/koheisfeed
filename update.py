@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 from datetime import datetime, timezone
 from urllib.parse import urljoin
 from pathlib import Path
+from xml.sax.saxutils import escape
 import re
 import json
 
@@ -53,6 +54,10 @@ def parse_meta_description(soup):
 
 def safe_text(element):
     return element.get_text(" ", strip=True) if element else None
+
+
+def xml_text(value):
+    return escape(str(value)) if value is not None else ""
 
 
 def get_text_after_label(soup, label):
@@ -200,9 +205,13 @@ def build_rss(items):
         desc_lines = []
 
         if it["poster"]:
-            desc_lines.append(f"<img src=\"{it['poster']}\" alt=\"{it['title']} poster\" />")
+            desc_lines.append(
+                f"<p><img src=\"{it['poster']}\" alt=\"{it['title']} poster\" style=\"width:100%;max-width:400px;height:auto;border:0;\" /></p>"
+            )
 
-        desc_lines.append(f"<strong><em>{it['title']}</em></strong>")
+        desc_lines.append(
+            f"<p style=\"margin:0 0 0.4em 0;color:#222;font-size:1.05em;\"><strong>{it['title']}</strong></p>"
+        )
 
         country_episode = []
         if it["country"]:
@@ -210,22 +219,34 @@ def build_rss(items):
         if it["episodes"]:
             country_episode.append(f"{it['episodes']} eps")
         if country_episode:
-            desc_lines.append(", ".join(country_episode))
+            desc_lines.append(
+                f"<p style=\"margin:0 0 0.4em 0;color:#555;\">{escape(', '.join(country_episode))}</p>"
+            )
 
         if it["air_date"]:
-            desc_lines.append(f"Air Date: {it['air_date']}")
+            desc_lines.append(
+                f"<p style=\"margin:0 0 0.4em 0;color:#555;\">Air Date: {escape(it['air_date'])}</p>"
+            )
 
         if it["countdown"]:
-            desc_lines.append("<strong>next episode airs in</strong>")
-            desc_lines.append(it["countdown"])
+            desc_lines.append(
+                f"<p style=\"margin:0 0 0.4em 0;color:#333;\"><strong>Next episode airs in</strong><br>{escape(it['countdown'])}</p>"
+            )
         elif it["next_ep_date"]:
-            desc_lines.append("<strong>next episode airs in</strong>")
-            desc_lines.append(it["next_ep_date"])
+            desc_lines.append(
+                f"<p style=\"margin:0 0 0.4em 0;color:#333;\"><strong>Next episode airs in</strong><br>{escape(it['next_ep_date'])}</p>"
+            )
 
         if it["synopsis"]:
-            desc_lines.append(f"<p>{it['synopsis']}</p>")
+            desc_lines.append(
+                f"<p style=\"margin:0 0 0.5em 0;color:#333;line-height:1.4;\">{escape(it['synopsis'])}</p>"
+            )
 
-        description_html = "<br>".join(desc_lines)
+        desc_lines.append(
+            f"<p style=\"margin:0;color:#555;\"><a href=\"{it['url']}\" style=\"color:#1a0dab;\">View on MyDramaList</a></p>"
+        )
+
+        description_html = "\n".join(desc_lines)
 
         media_tag = ""
         enclosure_tag = ""
@@ -244,10 +265,10 @@ def build_rss(items):
         pub_date = format_rfc2822(it['air_date'] or it['next_ep_date'])
         item_xml = (
             "  <item>\n"
-            f"    <title>{it['title']}</title>\n"
-            f"    <link>{it['url']}</link>\n"
+            f"    <title>{xml_text(it['title'])}</title>\n"
+            f"    <link>{xml_text(it['url'])}</link>\n"
             f"    <guid isPermaLink=\"false\">{guid}</guid>\n"
-            f"    <pubDate>{pub_date}</pubDate>\n"
+            f"    <pubDate>{xml_text(pub_date)}</pubDate>\n"
             f"    <description><![CDATA[{description_html}]]></description>\n"
             f"    <content:encoded><![CDATA[{description_html}]]></content:encoded>\n"
             f"{media_tag}{enclosure_tag}\n"
