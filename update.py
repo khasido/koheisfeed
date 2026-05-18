@@ -65,10 +65,17 @@ def parse_next_episode_date(html):
     except (ValueError, KeyError, json.JSONDecodeError):
         pass
     return None
+def get_status(soup):
+    """Extract show status (Ongoing, Upcoming, Completed)."""
+    status = get_text_after_label(soup, "Status:")
+    if status:
+        return status.lower()
+    return None
 
 def parse_show_page(url):
     html = fetch(url)
     soup = BeautifulSoup(html, "lxml")
+status = get_status(soup)
 
     title_el = soup.find("h1")
     title = title_el.get_text(strip=True) if title_el else url
@@ -110,6 +117,8 @@ def parse_show_page(url):
         "synopsis": synopsis,
         "next_ep_date": next_ep_date,
         "countdown": countdown_str,
+        "status": status,
+
     }
 
 def format_rfc2822(date_str):
@@ -194,8 +203,11 @@ def build_rss(items):
                 f"\n    <media:content url=\"{it['poster']}\" medium=\"image\" type=\"{mime_type}\" />"
                 f"\n    <media:thumbnail url=\"{it['poster']}\" />"
             )
-            enclosure_tag = f"\n    <enclosure url=\"{it['poster']}\" type=\"{mime_type}\" />"
-
+            # Discord/MEE6 requires length="0"
+            enclosure_tag = (
+               f"\n    <enclosure url=\"{it['poster']}\" "
+               f"type=\"{mime_type}\" length=\"0\" />"
+            )
         item_xml = (
             "  <item>\n"
             f"    <title>{it['title']}</title>\n"
@@ -230,7 +242,11 @@ def main():
         try:
             print(f"Parsing {url}")
             data = parse_show_page(url)
+            # Only include ongoing or upcoming shows
+            status = data.get("status", "")
+            if status not in ["completed", "finished", "ended"]:
             items.append(data)
+
         except Exception as exc:
             print(f"Error parsing {url}: {exc}")
 
