@@ -76,6 +76,33 @@ def get_status(soup):
         return status.lower()
     return None
 
+
+def parse_episode_count(episodes):
+    if not episodes:
+        return None
+    match = re.search(r"(\d+)", episodes)
+    if match:
+        return int(match.group(1))
+    return None
+
+
+def parse_next_episode_number(html):
+    try:
+        match = re.search(r'var nextEpisodeAiring\s*=\s*({.*?});', html, re.DOTALL)
+        if match:
+            data = json.loads(match.group(1))
+            if data:
+                for key in ("episode_number", "episodeNumber", "episode"):
+                    if key in data and data[key] is not None:
+                        try:
+                            return int(data[key])
+                        except (TypeError, ValueError):
+                            pass
+    except:
+        pass
+    return None
+
+
 def parse_next_episode_date(html):
     try:
         match = re.search(r'var nextEpisodeAiring\s*=\s*({.*?});', html, re.DOTALL)
@@ -116,8 +143,10 @@ def parse_show_page(url):
 
     country = get_text_after_label(soup, "Country:")
     episodes = get_text_after_label(soup, "Episodes:")
+    episode_count = parse_episode_count(episodes)
     air_date_str = get_text_after_label(soup, "Aired:")
     next_ep_date = parse_next_episode_date(html)
+    next_ep_number = parse_next_episode_number(html)
     status = get_status(soup)
 
     synopsis = None
@@ -153,9 +182,11 @@ def parse_show_page(url):
         "poster": poster,
         "country": country,
         "episodes": episodes,
+        "episode_count": episode_count,
         "air_date": air_date_str,
         "synopsis": synopsis,
         "next_ep_date": next_ep_date,
+        "next_ep_number": next_ep_number,
         "countdown": countdown_str,
         "status": status,
     }
@@ -204,58 +235,44 @@ def build_rss(items):
     for it in items:
         desc_lines = []
 
-        if it["poster"]:
-            desc_lines.append(
-                f"<p><img src=\"{it['poster']}\" alt=\"{it['title']} poster\" style=\"width:100%;max-width:400px;height:auto;border:0;\" /></p>"
-            )
-
-        desc_lines.append(
-            f"<p style=\"margin:0 0 0.4em 0;color:#222;font-size:1.05em;\"><strong>{it['title']}</strong></p>"
-        )
-
-        country_episode = []
         if it["country"]:
-            country_episode.append(it["country"])
-        if it["episodes"]:
-            country_episode.append(f"{it['episodes']} eps")
-        if country_episode:
             desc_lines.append(
-                f"<p style=\"margin:0 0 0.4em 0;color:#555;\">{escape(', '.join(country_episode))}</p>"
+                f"<p style=\"margin:0 0 0.6em 0;color:#333;line-height:1.5;\"><strong>Country:</strong> {escape(it['country'])}</p>"
             )
 
-        if it["air_date"]:
+        if it.get("episode_count") is not None:
             desc_lines.append(
-                f"<p style=\"margin:0 0 0.4em 0;color:#555;\">Air Date: {escape(it['air_date'])}</p>"
+                f"<p style=\"margin:0 0 0.6em 0;color:#333;line-height:1.5;\"><strong>Total Episodes:</strong> {it['episode_count']}</p>"
             )
 
-        if it["countdown"]:
+        next_episode_line = None
+        if it.get("next_ep_date"):
+            episode_number = it.get("next_ep_number")
+            total_episodes = it.get("episode_count")
+            if episode_number and total_episodes:
+                next_episode_line = f"Next Episode: {episode_number} of {total_episodes} {it['next_ep_date']}"
+            else:
+                next_episode_line = f"Next Episode: {it['next_ep_date']}"
+
+        if next_episode_line:
             desc_lines.append(
-                f"<p style=\"margin:0 0 0.4em 0;color:#333;\"><strong>Next episode airs in</strong><br>{escape(it['countdown'])}</p>"
-            )
-        elif it["next_ep_date"]:
-            desc_lines.append(
-                f"<p style=\"margin:0 0 0.4em 0;color:#333;\"><strong>Next episode airs in</strong><br>{escape(it['next_ep_date'])}</p>"
+                f"<p style=\"margin:0 0 0.6em 0;color:#333;line-height:1.5;\">{escape(next_episode_line)}</p>"
             )
 
         if it["synopsis"]:
             desc_lines.append(
-                f"<p style=\"margin:0 0 0.5em 0;color:#333;line-height:1.4;\">{escape(it['synopsis'])}</p>"
+                f"<p style=\"margin:0 0 0.6em 0;color:#333;line-height:1.5;\">{escape(it['synopsis'])}</p>"
             )
 
         desc_lines.append(
-            f"<p style=\"margin:0;color:#555;\"><a href=\"{it['url']}\" style=\"color:#1a0dab;\">View on MyDramaList</a></p>"
+            f"<p style=\"margin:0;color:#555;line-height:1.5;\"><a href=\"{it['url']}\" style=\"color:#1a0dab;\">View on MyDramaList</a></p>"
         )
 
         description_html = "\n".join(desc_lines)
 
-        media_tag = ""
         enclosure_tag = ""
         if it["poster"]:
             mime_type = image_mime_type(it["poster"])
-            media_tag = (
-                f"\n    <media:content url=\"{it['poster']}\" medium=\"image\" type=\"{mime_type}\" />"
-                f"\n    <media:thumbnail url=\"{it['poster']}\" />"
-            )
             enclosure_tag = (
                 f"\n    <enclosure url=\"{it['poster']}\" "
                 f"type=\"{mime_type}\" length=\"0\" />"
@@ -271,7 +288,7 @@ def build_rss(items):
             f"    <pubDate>{xml_text(pub_date)}</pubDate>\n"
             f"    <description><![CDATA[{description_html}]]></description>\n"
             f"    <content:encoded><![CDATA[{description_html}]]></content:encoded>\n"
-            f"{media_tag}{enclosure_tag}\n"
+            f"{enclosure_tag}\n"
             "  </item>"
         )
         rss_items.append(item_xml)
