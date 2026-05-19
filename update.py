@@ -11,7 +11,7 @@ import json
 LIST_URL = "https://mydramalist.com/list/3kPbQnZ4"
 BASE_URL = "https://mydramalist.com"
 MAX_ITEMS = 100
-FEED_TITLE = "Ongoing and Upcoming BLs"
+FEED_TITLE = "BL Updates"
 FEED_DESCRIPTION = "Auto-generated feed from MyDramaList list 3kPbQnZ4"
 FEED_LINK = LIST_URL
 
@@ -116,6 +116,22 @@ def parse_next_episode_date(html):
         pass
     return None
 
+
+def parse_synopsis(soup):
+    synopsis_selectors = [
+        "div.storyline",
+        "div.synopsis",
+        "section.show__description",
+        "div.content",
+    ]
+    for selector in synopsis_selectors:
+        section = soup.select_one(selector)
+        if section:
+            paragraphs = [p.get_text(" ", strip=True) for p in section.find_all("p") if p.get_text(strip=True)]
+            if paragraphs:
+                return "\n\n".join(paragraphs[:2])
+    return None
+
 def parse_show_page(url):
     html = fetch(url)
     soup = BeautifulSoup(html, "lxml")
@@ -149,19 +165,7 @@ def parse_show_page(url):
     next_ep_number = parse_next_episode_number(html)
     status = get_status(soup)
 
-    synopsis = None
-    synopsis_selectors = [
-        "div.storyline p",
-        "div.synopsis p",
-        "section.show__description p",
-        "div.content p",
-    ]
-    for selector in synopsis_selectors:
-        p = soup.select_one(selector)
-        if p and p.get_text(strip=True):
-            synopsis = p.get_text(" ", strip=True)
-            break
-
+    synopsis = parse_synopsis(soup)
     if not synopsis:
         synopsis = parse_meta_description(soup)
 
@@ -235,6 +239,11 @@ def build_rss(items):
     for it in items:
         desc_lines = []
 
+        if it["poster"]:
+            desc_lines.append(
+                f"<p><img src=\"{it['poster']}\" alt=\"{it['title']} poster\" style=\"width:100%;max-width:700px;height:auto;border:0;display:block;margin:0 0 1em;\" /></p>"
+            )
+
         if it["country"]:
             desc_lines.append(
                 f"<p style=\"margin:0 0 0.6em 0;color:#333;line-height:1.5;\"><strong>Country:</strong> {escape(it['country'])}</p>"
@@ -261,7 +270,7 @@ def build_rss(items):
 
         if it["synopsis"]:
             desc_lines.append(
-                f"<p style=\"margin:0 0 0.6em 0;color:#333;line-height:1.5;\">{escape(it['synopsis'])}</p>"
+                f"<p style=\"margin:0 0 0.6em 0;color:#333;line-height:1.5;\">{escape(it['synopsis']).replace('\n\n', '<br><br>')}</p>"
             )
 
         desc_lines.append(
