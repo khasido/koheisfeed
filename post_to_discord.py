@@ -116,8 +116,7 @@ def post_new_items(feed_path="feed.xml", state_path=STATE_DEFAULT, webhook_env="
         title = item.title.string if item.title and item.title.string else ""
         link = item.link.string if item.link and item.link.string else ""
         description_html = item.find("description").string if item.find("description") and item.find("description").string else ""
-        cleaned_description_html = _clean_description_html(description_html)
-        description_text = _html_to_text(cleaned_description_html)[:2048]
+        description_text = ""
         image = _extract_first_image(item)
 
         # extract metadata fields
@@ -132,7 +131,7 @@ def post_new_items(feed_path="feed.xml", state_path=STATE_DEFAULT, webhook_env="
             "fields": [],
         }
         if image:
-            embed["thumbnail"] = {"url": image}
+            embed["image"] = {"url": image}
 
         if country:
             embed["fields"].append({"name": "Country", "value": country, "inline": True})
