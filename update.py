@@ -264,59 +264,9 @@ def image_mime_type(url):
     return "image/jpeg"
 
 
-def build_summary_item(items):
-    if not items:
-        summary_html = "<p>No shows found in the list.</p>"
-    else:
-        summary_lines = [
-            f"<p style=\"margin:0 0 1em 0;color:#333;line-height:1.5;\"><strong>Full list snapshot</strong> — {len(items)} shows from MyDramaList.</p>"
-        ]
-        for it in items:
-            synopsis_html = escape(it["synopsis"]).replace("\n\n", "<br><br>") if it["synopsis"] else ""
-            next_episode_html = ""
-            if it.get("next_ep_date"):
-                episode_number = it.get("next_ep_number")
-                total_episodes = it.get("episode_count")
-                if episode_number and total_episodes:
-                    next_episode_html = f"<p style=\"margin:0 0 0.4em 0;color:#333;line-height:1.5;\"><strong>Next Episode:</strong> {episode_number} of {total_episodes} {escape(it['next_ep_date'])}</p>"
-                else:
-                    next_episode_html = f"<p style=\"margin:0 0 0.4em 0;color:#333;line-height:1.5;\"><strong>Next Episode:</strong> {escape(it['next_ep_date'])}</p>"
-
-            summary_lines.append(
-                "<div style=\"margin-bottom:1.5em;padding-bottom:1.2em;border-bottom:1px solid #ddd;\">"
-                f"<h2 style=\"margin:0 0 0.4em 0;font-size:1.05em;\">{escape(it['title'])}</h2>"
-                f"<p style=\"margin:0 0 0.4em 0;color:#333;line-height:1.5;\"><strong>Country:</strong> {escape(it['country'] or 'Unknown')}</p>"
-                f"<p style=\"margin:0 0 0.4em 0;color:#333;line-height:1.5;\"><strong>Total Episodes:</strong> {it['episode_count'] or 'TBA'}</p>"
-                f"{next_episode_html}"
-                f"<p style=\"margin:0 0 0.6em 0;color:#333;line-height:1.5;\">{synopsis_html}</p>"
-                f"<p style=\"margin:0;color:#1a0dab;line-height:1.5;\"><a href=\"{it['url']}\">View on MyDramaList</a></p>"
-                "</div>"
-            )
-        summary_html = "\n".join(summary_lines)
-
-    summary_guid = hashlib.sha256(
-        "|".join(
-            [
-                f"{it['url']}|{it['title']}|{it.get('next_ep_date') or ''}|{it.get('episode_count') or ''}|{it.get('synopsis') or ''}"
-                for it in items
-            ]
-        ).encode('utf-8')
-    ).hexdigest()
-    summary_pub_date = datetime.now(timezone.utc).strftime("%a, %d %b %Y %H:%M:%S %z")
-    return (
-        "  <item>\n"
-        "    <title>BL Updates — Full MyDramaList List</title>\n"
-        f"    <link>{xml_text(FEED_LINK)}</link>\n"
-        f"    <guid isPermaLink=\"false\">{summary_guid}</guid>\n"
-        f"    <pubDate>{xml_text(summary_pub_date)}</pubDate>\n"
-        f"    <description><![CDATA[{summary_html}]]></description>\n"
-        f"    <content:encoded><![CDATA[{summary_html}]]></content:encoded>\n"
-        "  </item>"
-    )
-
 def build_rss(items):
     now = datetime.now(timezone.utc).strftime("%a, %d %b %Y %H:%M:%S %z")
-    rss_items = [build_summary_item(items)]
+    rss_items = []
 
     for it in items:
         desc_lines = []
@@ -374,7 +324,7 @@ def build_rss(items):
             )
 
         guid = hashlib.sha256(it['url'].encode('utf-8')).hexdigest()
-        pub_date = format_rfc2822(it['air_date'] or it['next_ep_date'])
+        pub_date = datetime.now(timezone.utc).strftime("%a, %d %b %Y %H:%M:%S %z")
         item_xml = (
             "  <item>\n"
             f"    <title>{xml_text(it['title'])}</title>\n"
