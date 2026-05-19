@@ -42,9 +42,9 @@ Format:
 {
   "BL": ["title1", "title2"],
   "GL": ["title3"]
-}
+}``` 
 
-The TMDB scraper automatically excludes blacklisted titles.
+###The TMDB scraper automatically excludes blacklisted titles.
 
 ✔ State tracking
 To prevent duplicate Discord posts:
@@ -83,37 +83,37 @@ Commits updated XML + JSON
 1. Environment variables
 Set in GitHub Actions secrets:
 
-TMDB_API_KEY=your_key_here
+```TMDB_API_KEY=your_key_here
 DISCORD_WEBHOOK_BL=...
-DISCORD_WEBHOOK_GL=...
+DISCORD_WEBHOOK_GL=...```
 
 2. Blacklist file
 Create: data/blacklist.json
 With:
-{
+```{
   "BL": [],
   "GL": []
-}
+}```
 
 3. Install dependencies
-pip install -r requirements.txt
+```pip install -r requirements.txt```
 
 4. Run manually
-python update.py
+```python update.py```
 
 GitHub Actions
 Workflow commits:
 
-feed_bl.xml
+```feed_bl.xml
 
 feed_gl.xml
 
 state_bl.json
 
-state_gl.json
+state_gl.json```
 
 📁 File Structure
-update.py
+```update.py
 tmdb_fetcher.py
 rss_builder.py
 rss_parser.py
@@ -124,7 +124,7 @@ data/
 feed_bl.xml
 feed_gl.xml
 state_bl.json
-state_gl.json
+state_gl.json```
 
 🧩 Integration with Wei Wei
 Wei Wei provides:
