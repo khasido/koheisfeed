@@ -328,8 +328,8 @@ def build_rss(items):
         idx = items.index(it)
         item_dt = base_dt - timedelta(seconds=idx)
         pub_date = item_dt.strftime("%a, %d %b %Y %H:%M:%S %z")
-        # make guid unique per feed generation so bridges treat items as new
-        guid = hashlib.sha256(f"{it['url']}|{pub_date}".encode('utf-8')).hexdigest()
+        # use a stable guid per show (based on its URL) so we can update existing posts
+        guid = hashlib.sha256(it['url'].encode('utf-8')).hexdigest()
         item_xml = (
             "  <item>\n"
             f"    <title>{xml_text(it['title'])}</title>\n"

@@ -55,28 +55,41 @@ def post_new_items(feed_path="feed.xml", state_path=STATE_DEFAULT, webhook_env="
     state_file = Path(state_path)
     if state_file.exists():
         try:
-            posted = set(json.loads(state_file.read_text(encoding="utf-8")))
+            raw = json.loads(state_file.read_text(encoding="utf-8"))
+            if isinstance(raw, dict):
+                posted = raw
+            elif isinstance(raw, list):
+                # upgrade older list format -> dict with None message ids
+                posted = {g: None for g in raw}
+            else:
+                posted = {}
         except Exception:
-            posted = set()
+            posted = {}
     else:
-        posted = set()
+        posted = {}
 
     soup = BeautifulSoup(feed_file.read_text(encoding="utf-8"), "lxml-xml")
     items = soup.find_all("item")
     # post older first so channel receives chronological order
     items = list(reversed(items))
 
+
+    # parse webhook id/token for edit endpoint
+    m = re.search(r"https?://[^/]+/api/webhooks/([^/]+)/([^/?#]+)", webhook)
+    if not m:
+        print("Webhook URL not recognized; must be a full Discord webhook URL.")
+        return
+    wh_id, wh_token = m.group(1), m.group(2)
+
     new_guids = []
     for item in items:
         guid = item.guid.string.strip() if item.guid and item.guid.string else None
         if not guid:
-            # fallback to url+pubDate
             link = item.link.string if item.link and item.link.string else ""
             pub = item.pubDate.string if item.pubDate and item.pubDate.string else ""
             guid = f"{link}|{pub}"
 
-        if guid in posted:
-            continue
+        existing_msg_id = posted.get(guid)
 
         title = item.title.string if item.title and item.title.string else ""
         link = item.link.string if item.link and item.link.string else ""
@@ -108,17 +121,41 @@ def post_new_items(feed_path="feed.xml", state_path=STATE_DEFAULT, webhook_env="
         payload = {"embeds": [embed]}
 
         try:
-            r = requests.post(webhook, json=payload, timeout=10)
-            if r.status_code >= 200 and r.status_code < 300:
-                print(f"Posted: {title}")
-                posted.add(guid)
-                new_guids.append(guid)
+            if not existing_msg_id:
+                r = requests.post(webhook, json=payload, timeout=10)
+                if r.status_code >= 200 and r.status_code < 300:
+                    data = r.json()
+                    msg_id = str(data.get("id"))
+                    print(f"Posted: {title} -> message {msg_id}")
+                    posted[guid] = msg_id
+                    new_guids.append(guid)
+                else:
+                    print(f"Failed to post {title}: {r.status_code} {r.text}")
+                    break
             else:
-                print(f"Failed to post {title}: {r.status_code} {r.text}")
-                # stop on failure to avoid hitting rate limits
-                break
+                edit_url = f"https://discord.com/api/webhooks/{wh_id}/{wh_token}/messages/{existing_msg_id}"
+                r = requests.patch(edit_url, json={"embeds": [embed]}, timeout=10)
+                if r.status_code >= 200 and r.status_code < 300:
+                    print(f"Updated: {title} (message {existing_msg_id})")
+                else:
+                    print(f"Failed to update {title}: {r.status_code} {r.text}")
+                    # if update failed (deleted message?), try reposting once
+                    try:
+                        r2 = requests.post(webhook, json=payload, timeout=10)
+                        if r2.status_code >= 200 and r2.status_code < 300:
+                            data = r2.json()
+                            msg_id = str(data.get("id"))
+                            print(f"Reposted: {title} -> message {msg_id}")
+                            posted[guid] = msg_id
+                            new_guids.append(guid)
+                        else:
+                            print(f"Repost failed: {r2.status_code} {r2.text}")
+                            break
+                    except Exception as exc:
+                        print(f"Error reposting {title}: {exc}")
+                        break
         except Exception as exc:
-            print(f"Error posting {title}: {exc}")
+            print(f"Error posting/updating {title}: {exc}")
             break
 
         time.sleep(sleep_seconds)
