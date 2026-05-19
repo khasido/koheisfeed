@@ -3,62 +3,698 @@
     "19882": {
       "next_ep_date": null,
       "next_ep_number": null,
-      "status": "ongoing"
+      "status": "upcoming",
+      "discord_message_id": null
     },
     "29707": {
       "next_ep_date": null,
       "next_ep_number": null,
-      "status": "ongoing"
+      "status": "upcoming",
+      "discord_message_id": null
     },
     "3801": {
       "next_ep_date": null,
       "next_ep_number": null,
-      "status": "ongoing"
+      "status": "upcoming",
+      "discord_message_id": null
     },
     "71494": {
       "next_ep_date": null,
       "next_ep_number": null,
-      "status": "ongoing"
-    },
-    "82055": {
-      "next_ep_date": null,
-      "next_ep_number": null,
-      "status": "ongoing"
+      "status": "upcoming",
+      "discord_message_id": null
     },
     "138214": {
       "next_ep_date": null,
       "next_ep_number": null,
-      "status": "ongoing"
+      "status": "upcoming",
+      "discord_message_id": null
     },
     "31862": {
       "next_ep_date": null,
       "next_ep_number": null,
-      "status": "ongoing"
+      "status": "upcoming",
+      "discord_message_id": null
     },
     "313337": {
       "next_ep_date": null,
       "next_ep_number": null,
-      "status": "upcoming"
-    },
-    "301225": {
-      "next_ep_date": null,
-      "next_ep_number": null,
-      "status": "ongoing"
-    },
-    "309240": {
-      "next_ep_date": null,
-      "next_ep_number": null,
-      "status": "ongoing"
-    },
-    "297699": {
-      "next_ep_date": null,
-      "next_ep_number": null,
-      "status": "ongoing"
+      "status": "upcoming",
+      "discord_message_id": null
     },
     "318311": {
       "next_ep_date": null,
       "next_ep_number": null,
-      "status": "upcoming"
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "283905": {
+      "next_ep_date": "May 23, 2026",
+      "next_ep_number": 7,
+      "status": "ongoing",
+      "discord_message_id": null
+    },
+    "39340": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "ended",
+      "discord_message_id": null
+    },
+    "1115047": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "88830": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "ended",
+      "discord_message_id": null
+    },
+    "312945": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "ended",
+      "discord_message_id": null
+    },
+    "240446": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "ended",
+      "discord_message_id": null
+    },
+    "1206549": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "928896": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "81368": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "103340": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "ended",
+      "discord_message_id": null
+    },
+    "262910": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "83955": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "155299": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "250933": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "7135": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "ended",
+      "discord_message_id": null
+    },
+    "155513": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "ended",
+      "discord_message_id": null
+    },
+    "852222": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "137369": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "1370051": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "160044": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "1188552": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "9337": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "ended",
+      "discord_message_id": null
+    },
+    "620804": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "594885": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "1493984": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "425851": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "594887": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "326624": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "255765": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "ended",
+      "discord_message_id": null
+    },
+    "1604024": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "98": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "558449": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "137548": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "1417": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "ended",
+      "discord_message_id": null
+    },
+    "96203": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "ended",
+      "discord_message_id": null
+    },
+    "75086": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "ended",
+      "discord_message_id": null
+    },
+    "844259": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "283657": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "ended",
+      "discord_message_id": null
+    },
+    "70573": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "ended",
+      "discord_message_id": null
+    },
+    "61149": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "ended",
+      "discord_message_id": null
+    },
+    "254592": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "ended",
+      "discord_message_id": null
+    },
+    "683616": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "479259": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "832516": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "944802": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "641702": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "308268": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "85390": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "ended",
+      "discord_message_id": null
+    },
+    "1117614": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "2215": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "ended",
+      "discord_message_id": null
+    },
+    "12716": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "216012": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "ended",
+      "discord_message_id": null
+    },
+    "1460204": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "27072": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "205961": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "ended",
+      "discord_message_id": null
+    },
+    "687936": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "96399": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "519010": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "810557": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "617453": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "845267": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "35974": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "ended",
+      "discord_message_id": null
+    },
+    "3332": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "ended",
+      "discord_message_id": null
+    },
+    "186094": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "1134517": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "544810": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "1463924": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "218263": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "ended",
+      "discord_message_id": null
+    },
+    "227706": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "ended",
+      "discord_message_id": null
+    },
+    "33091": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "ended",
+      "discord_message_id": null
+    },
+    "54919": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "275388": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "ended",
+      "discord_message_id": null
+    },
+    "136283": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "ended",
+      "discord_message_id": null
+    },
+    "257782": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "ended",
+      "discord_message_id": null
+    },
+    "80638": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "255111": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "ended",
+      "discord_message_id": null
+    },
+    "222017": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "ended",
+      "discord_message_id": null
+    },
+    "1660943": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "1534558": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "50919": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "821971": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "285743": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "ended",
+      "discord_message_id": null
+    },
+    "432438": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "1273109": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "1305307": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "376051": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "1570886": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "583847": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "1335834": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "753576": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "237039": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "201949": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "ended",
+      "discord_message_id": null
+    },
+    "979522": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "865842": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "111149": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "ended",
+      "discord_message_id": null
+    },
+    "1444548": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "68129": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "ended",
+      "discord_message_id": null
+    },
+    "38326": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "307109": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "ended",
+      "discord_message_id": null
+    },
+    "841124": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "1253457": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "249124": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "234490": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "ended",
+      "discord_message_id": null
+    },
+    "68642": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "ended",
+      "discord_message_id": null
+    },
+    "52891": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "ended",
+      "discord_message_id": null
+    },
+    "320964": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
+    },
+    "122741": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "ended",
+      "discord_message_id": null
+    },
+    "105915": {
+      "next_ep_date": null,
+      "next_ep_number": null,
+      "status": "upcoming",
+      "discord_message_id": null
     }
   }
 }
