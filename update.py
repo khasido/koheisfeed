@@ -306,8 +306,9 @@ def build_rss(items):
             )
 
         if it["synopsis"]:
+            synopsis_html = escape(it["synopsis"]).replace("\n\n", "<br><br>")
             desc_lines.append(
-                f"<p style=\"margin:0 0 0.6em 0;color:#333;line-height:1.5;\">{escape(it['synopsis']).replace('\n\n', '<br><br>')}</p>"
+                f"<p style=\"margin:0 0 0.6em 0;color:#333;line-height:1.5;\">{synopsis_html}</p>"
             )
 
         desc_lines.append(
