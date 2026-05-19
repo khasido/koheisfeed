@@ -385,6 +385,17 @@ def main():
     rss_xml = build_rss(items)
     Path("feed.xml").write_text(rss_xml, encoding="utf-8")
     print("feed.xml updated.")
+    # try posting to Discord if webhook is configured
+    try:
+        import os
+        if os.environ.get("DISCORD_WEBHOOK_URL"):
+            try:
+                from post_to_discord import post_new_items
+                post_new_items("feed.xml")
+            except Exception as exc:
+                print(f"Error posting to Discord: {exc}")
+    except Exception:
+        pass
 
 if __name__ == "__main__":
     main()
