@@ -1,3 +1,4 @@
+# post_to_discord.py
 import json
 import requests
 import random
@@ -10,36 +11,39 @@ MINT_GREEN = 0xA8F0C6
 PALE_YELLOW = 0xFFF4B8
 WEEKLY_PASTEL = 0xD9E8FF
 
-
 def center(text):
     return text
-
 
 def build_embed(item):
     title = item["title"]
     url = item["url"]
     poster = item["poster"]
-    country = item["country"]
+    country = item["country_code"]
     ep_total = item["episode_count"]
     next_ep = item["next_ep_number"]
     next_date = item["next_ep_date"]
     status = item["status"]
 
-    # Color
-    color = MINT_GREEN if status in ["airing", "currently airing"] else PALE_YELLOW
+    # Color logic
+    color = MINT_GREEN if status == "ongoing" else PALE_YELLOW
 
-    # Title (centered + soft emoji)
+    # Title with emoji
     emoji = random.choice(SOFT_EMOJIS)
     embed_title = center(f"{title} {emoji}")
 
     # Country flag
-    flag = {
-        "thailand": "🇹🇭",
-        "japan": "🇯🇵",
-        "china": "🇨🇳",
-        "south korea": "🇰🇷",
-        "taiwan": "🇹🇼",
-    }.get(country.lower() if country else "", "🌍")
+    flag_map = {
+        "TH": "🇹🇭",
+        "JP": "🇯🇵",
+        "CN": "🇨🇳",
+        "KR": "🇰🇷",
+        "TW": "🇹🇼",
+        "PH": "🇵🇭",
+        "VN": "🇻🇳",
+        "HK": "🇭🇰",
+        "MY": "🇲🇾",
+    }
+    flag = flag_map.get(country, "🌍")
 
     # Airs In
     airs_in = "Unknown"
@@ -53,47 +57,27 @@ def build_embed(item):
         except:
             pass
 
-    # Build 4-column layout
     fields = [
-        {
-            "name": "🌍 Country",
-            "value": f"{flag} {country}" if country else "—",
-            "inline": True
-        },
-        {
-            "name": "🎞️ Episodes",
-            "value": f"{ep_total}" if ep_total else "—",
-            "inline": True
-        },
-        {
-            "name": "⏳ Airs In",
-            "value": airs_in,
-            "inline": True
-        },
-        {
-            "name": "📡 Status",
-            "value": status.title(),
-            "inline": True
-        }
+        {"name": "🌍 Country", "value": f"{flag} {country}" if country else "—", "inline": True},
+        {"name": "🎞️ Episodes", "value": f"{ep_total}" if ep_total else "—", "inline": True},
+        {"name": "⏳ Airs In", "value": airs_in, "inline": True},
+        {"name": "📡 Status", "value": status.title(), "inline": True},
     ]
 
-    # Build embed (banner poster at bottom)
     embed = {
         "title": embed_title,
-        "description": "",  # no synopsis
+        "description": "",
         "color": color,
         "fields": fields,
-        "image": {"url": poster} if poster else {},  # full-width banner
-        "footer": {"text": "🔗 View on MDL"},
+        "image": {"url": poster} if poster else {},
+        "footer": {"text": "🔗 View on TMDB"},
         "url": url
     }
 
     return embed
 
-
 def build_weekly_summary(items):
     upcoming = []
-
     now = datetime.now(timezone.utc)
     week_later = now + timedelta(days=7)
 
@@ -113,8 +97,8 @@ def build_weekly_summary(items):
     upcoming.sort(key=lambda x: (x[0], x[1]["title"].lower()))
 
     lines = ["📅 **Episodes Airing This Week**\n"]
-
     current_day = None
+
     for dt, it in upcoming:
         day_str = dt.strftime("%b %d")
         if day_str != current_day:
@@ -129,13 +113,12 @@ def build_weekly_summary(items):
         "title": center("Weekly Airing Summary"),
         "description": "\n".join(lines),
         "color": WEEKLY_PASTEL,
-        "footer": {"text": "🔗 View on MDL"}
+        "footer": {"text": "🔗 View on TMDB"}
     }
 
     return embed
 
-
-def post_new_items(feed_path):
+def post_new_items(feed_path, webhook_url):
     from rss_parser import parse_feed_items
 
     with open(feed_path, "r", encoding="utf-8") as f:
@@ -143,7 +126,6 @@ def post_new_items(feed_path):
 
     items = parse_feed_items(xml)
 
-    webhook_url = os.environ.get("DISCORD_WEBHOOK_URL")
     if not webhook_url:
         print("No webhook URL set.")
         return
@@ -156,18 +138,8 @@ def post_new_items(feed_path):
                 {
                     "type": 1,
                     "components": [
-                        {
-                            "type": 2,
-                            "style": 1,
-                            "label": "🔔 Track Airing",
-                            "custom_id": "track_airing"
-                        },
-                        {
-                            "type": 2,
-                            "style": 1,
-                            "label": "📩 Track Finale",
-                            "custom_id": "track_finale"
-                        }
+                        {"type": 2, "style": 1, "label": "🔔 Track Airing", "custom_id": "track_airing"},
+                        {"type": 2, "style": 1, "label": "📩 Track Finale", "custom_id": "track_finale"}
                     ]
                 }
             ]

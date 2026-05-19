@@ -1,4 +1,16 @@
+# rss_parser.py
 import xml.etree.ElementTree as ET
+from html import unescape
+
+def extract_between(text, start_tag, end_tag):
+    start = text.find(start_tag)
+    if start == -1:
+        return None
+    start += len(start_tag)
+    end = text.find(end_tag, start)
+    if end == -1:
+        return None
+    return text[start:end].strip()
 
 def parse_feed_items(xml_text):
     root = ET.fromstring(xml_text)
@@ -8,58 +20,60 @@ def parse_feed_items(xml_text):
     for item in channel.findall("item"):
         title = item.findtext("title", "")
         link = item.findtext("link", "")
-        description = item.findtext("description", "")
-        encoded = item.findtext("{http://purl.org/rss/1.0/modules/content/}encoded", "")
-        poster = None
+        encoded = item.findtext("{http://purl.org/rss/1.0/modules/content/}encoded", "") or ""
+        encoded = unescape(encoded)
 
-        # Extract poster from enclosure
+        # Poster from enclosure
         enclosure = item.find("enclosure")
-        if enclosure is not None:
-            poster = enclosure.get("url")
+        poster = enclosure.get("url") if enclosure is not None else None
 
-        # Extract custom fields from description HTML
-        # (We embedded all metadata inside the HTML)
-        def extract(tag):
-            if tag in encoded:
-                start = encoded.find(f"<strong>{tag}</strong>")
-                if start != -1:
-                    segment = encoded[start:]
-                    end = segment.find("</p>")
-                    if end != -1:
-                        return segment.split("</strong>")[1].split("</p>")[0].strip()
-            return None
+        # Extract metadata from HTML
+        country = extract_between(encoded, "<strong>Country:</strong>", "</p>")
+        if country:
+            country = country.replace(":", "").strip()
 
-        country = extract("Country:")
-        episodes = extract("Total Episodes:")
-        next_ep = extract("Next Episode:")
-        synopsis = encoded.split("</p>")[-2].strip() if encoded else ""
+        ep_total = extract_between(encoded, "<strong>Total Episodes:</strong>", "</p>")
+        try:
+            ep_total = int(ep_total) if ep_total else None
+        except:
+            ep_total = None
 
-        # Parse next episode number + date
+        next_ep_raw = extract_between(encoded, "<strong>Next Episode:</strong>", "</p>")
         next_ep_number = None
         next_ep_date = None
-        if next_ep:
-            parts = next_ep.split("—")
-            if len(parts) == 2:
-                left, right = parts
-                # Extract episode number
+
+        if next_ep_raw:
+            if "—" in next_ep_raw:
+                left, right = next_ep_raw.split("—", 1)
+                right = right.strip()
+                next_ep_date = right
                 if "Ep" in left:
                     try:
                         next_ep_number = int(left.replace("Ep", "").strip())
                     except:
                         pass
-                next_ep_date = right.strip()
+            else:
+                next_ep_date = next_ep_raw.strip()
 
-        # Determine status
+        # Synopsis = last <p> before the link
+        parts = encoded.split("</p>")
+        synopsis = None
+        if len(parts) >= 2:
+            syn = parts[-2].strip()
+            if syn and not syn.startswith("<a "):
+                synopsis = syn
+
+        # Status inference
         status = "upcoming"
-        if "Airs In" in encoded:
-            status = "airing"
+        if next_ep_number:
+            status = "ongoing"
 
         items.append({
             "title": title,
             "url": link,
             "poster": poster,
-            "country": country,
-            "episode_count": int(episodes) if episodes and episodes.isdigit() else None,
+            "country_code": country,
+            "episode_count": ep_total,
             "next_ep_number": next_ep_number,
             "next_ep_date": next_ep_date,
             "synopsis": synopsis,

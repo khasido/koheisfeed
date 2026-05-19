@@ -1,42 +1,139 @@
-# bl-rss
-Ongoing and upcoming boys love drama RSS feed scraped from my drama list, list manually updated; feed auto updates using every 6 hour cron job.
+# BL/GL TMDB Auto Feed Generator
 
-## Setup
+This project generates **two separate RSS feeds** for BL and GL content using the TMDB API.  
+It supports **TV shows + movies**, uses **keywords + genres + country prioritization**, and integrates with **Wei Wei**, a custom Discord bot.
 
-Install the runtime dependencies with the repository virtual environment:
+## ✨ Features
 
-```powershell
-cd C:\Users\khasi\OneDrive\Repos\bl-rss
-.\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
-```
+### ✔ TMDB-powered discovery
+- Searches TV + Movies
+- Uses BL/GL keyword sets
+- Prioritizes 9 major BL/GL-producing countries:
+  TH, JP, KR, CN, TW, PH, VN, HK, MY
+- Still includes global titles
 
-Then run the updater using the repo venv Python. If the venv is activated, use:
+### ✔ Clean status classification
+TMDB → Feed status:
+- Returning Series → ongoing  
+- In Production / Planned / Post Production / Pilot → upcoming  
+- Ended → excluded  
+- Canceled → excluded  
 
-```powershell
-cd C:\Users\khasi\OneDrive\Repos\bl-rss
+### ✔ Dual RSS feeds
+Generated files:
+- `feed_bl.xml` — BL-only feed  
+- `feed_gl.xml` — GL-only feed  
+
+Each feed includes:
+- Poster  
+- Country  
+- Episode count  
+- Next episode number  
+- Next episode date  
+- Synopsis  
+- TMDB link  
+- Countdown-ready metadata  
+
+### ✔ Blacklist integration
+Wei Wei maintains: data/blacklist.json
+
+Format:
+```json
+{
+  "BL": ["title1", "title2"],
+  "GL": ["title3"]
+}
+
+The TMDB scraper automatically excludes blacklisted titles.
+
+✔ State tracking
+To prevent duplicate Discord posts:
+
+state_bl.json
+
+state_gl.json
+
+Only changed items trigger Discord embeds.
+
+✔ Discord posting
+Two webhooks:
+
+DISCORD_WEBHOOK_BL
+
+DISCORD_WEBHOOK_GL
+
+Each feed posts to its own channel.
+
+✔ GitHub Actions automation
+Runs every 6 minutes:
+
+Fetches TMDB data
+
+Applies blacklist
+
+Builds feeds
+
+Updates state
+
+Posts to Discord
+
+Commits updated XML + JSON
+
+🔧 Setup
+1. Environment variables
+Set in GitHub Actions secrets:
+
+TMDB_API_KEY=your_key_here
+DISCORD_WEBHOOK_BL=...
+DISCORD_WEBHOOK_GL=...
+
+2. Blacklist file
+Create: data/blacklist.json
+With:
+{
+  "BL": [],
+  "GL": []
+}
+
+3. Install dependencies
+pip install -r requirements.txt
+
+4. Run manually
 python update.py
-```
 
-If you have not activated the venv, run the script directly with the repo interpreter:
+GitHub Actions
+Workflow commits:
 
-```powershell
-cd C:\Users\khasi\OneDrive\Repos\bl-rss
-.\.venv\Scripts\python.exe .\update.py
-```
+feed_bl.xml
 
-Alternatively, use the provided launcher script from the repo root:
+feed_gl.xml
 
-PowerShell:
-```powershell
-cd C:\Users\khasi\OneDrive\Repos\bl-rss
-.\run.ps1
-```
+state_bl.json
 
-Command Prompt:
-```cmd
-cd C:\Users\khasi\OneDrive\Repos\bl-rss
-run.cmd
-```
+state_gl.json
 
-> If you see a message about `C:\Users\khasi\AppData\Local\Programs\Python\Python313\python.exe`, that means the global Python install is being used instead of the repository virtual environment.
+📁 File Structure
+update.py
+tmdb_fetcher.py
+rss_builder.py
+rss_parser.py
+state_manager.py
+post_to_discord.py
+data/
+   blacklist.json
+feed_bl.xml
+feed_gl.xml
+state_bl.json
+state_gl.json
+
+🧩 Integration with Wei Wei
+Wei Wei provides:
+
+/blacklist-add
+
+/blacklist-remove
+
+/blacklist-list
+
+These commands update data/blacklist.json.
+The TMDB scraper respects it automatically.
