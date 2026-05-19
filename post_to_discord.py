@@ -121,48 +121,77 @@ def post_new_items(feed_path="feed.xml", state_path=STATE_DEFAULT, webhook_env="
         payload = {"embeds": [embed]}
 
         try:
+            max_retries = 3
+            attempt = 0
+            success = False
+
             if not existing_msg_id:
-                r = requests.post(webhook, json=payload, timeout=10)
-                if r.status_code >= 200 and r.status_code < 300:
-                    data = r.json()
-                    msg_id = str(data.get("id"))
-                    print(f"Posted: {title} -> message {msg_id}")
-                    posted[guid] = msg_id
-                    new_guids.append(guid)
-                else:
-                    print(f"Failed to post {title}: {r.status_code} {r.text}")
-                    break
+                while attempt < max_retries and not success:
+                    r = requests.post(webhook, json=payload, timeout=10)
+                    if 200 <= r.status_code < 300:
+                        data = r.json()
+                        msg_id = str(data.get("id"))
+                        print(f"Posted: {title} -> message {msg_id}")
+                        posted[guid] = msg_id
+                        new_guids.append(guid)
+                        success = True
+                    elif r.status_code == 429:
+                        retry_after = None
+                        try:
+                            retry_after = int(r.headers.get("Retry-After") or (r.json().get("retry_after") if r.text else None))
+                        except Exception:
+                            retry_after = None
+                        wait = (retry_after or (2 ** attempt))
+                        print(f"Rate limited posting {title}; sleeping {wait}s and retrying...")
+                        time.sleep(wait)
+                        attempt += 1
+                    else:
+                        print(f"Failed to post {title}: {r.status_code} {r.text}")
+                        break
             else:
                 edit_url = f"https://discord.com/api/webhooks/{wh_id}/{wh_token}/messages/{existing_msg_id}"
-                r = requests.patch(edit_url, json={"embeds": [embed]}, timeout=10)
-                if r.status_code >= 200 and r.status_code < 300:
-                    print(f"Updated: {title} (message {existing_msg_id})")
-                else:
-                    print(f"Failed to update {title}: {r.status_code} {r.text}")
-                    # if update failed (deleted message?), try reposting once
-                    try:
-                        r2 = requests.post(webhook, json=payload, timeout=10)
-                        if r2.status_code >= 200 and r2.status_code < 300:
-                            data = r2.json()
-                            msg_id = str(data.get("id"))
-                            print(f"Reposted: {title} -> message {msg_id}")
-                            posted[guid] = msg_id
-                            new_guids.append(guid)
-                        else:
-                            print(f"Repost failed: {r2.status_code} {r2.text}")
-                            break
-                    except Exception as exc:
-                        print(f"Error reposting {title}: {exc}")
+                while attempt < max_retries and not success:
+                    r = requests.patch(edit_url, json={"embeds": [embed]}, timeout=10)
+                    if 200 <= r.status_code < 300:
+                        print(f"Updated: {title} (message {existing_msg_id})")
+                        success = True
+                    elif r.status_code == 429:
+                        retry_after = None
+                        try:
+                            retry_after = int(r.headers.get("Retry-After") or (r.json().get("retry_after") if r.text else None))
+                        except Exception:
+                            retry_after = None
+                        wait = (retry_after or (2 ** attempt))
+                        print(f"Rate limited updating {title}; sleeping {wait}s and retrying...")
+                        time.sleep(wait)
+                        attempt += 1
+                    else:
+                        print(f"Failed to update {title}: {r.status_code} {r.text}")
+                        # if update failed (deleted message?), try reposting once
+                        try:
+                            r2 = requests.post(webhook, json=payload, timeout=10)
+                            if 200 <= r2.status_code < 300:
+                                data = r2.json()
+                                msg_id = str(data.get("id"))
+                                print(f"Reposted: {title} -> message {msg_id}")
+                                posted[guid] = msg_id
+                                new_guids.append(guid)
+                                success = True
+                            else:
+                                print(f"Repost failed: {r2.status_code} {r2.text}")
+                        except Exception as exc:
+                            print(f"Error reposting {title}: {exc}")
                         break
         except Exception as exc:
             print(f"Error posting/updating {title}: {exc}")
-            break
+            # continue to next item instead of breaking out
+            continue
 
         time.sleep(sleep_seconds)
 
     # persist state
     try:
-        state_file.write_text(json.dumps(list(posted)), encoding="utf-8")
+        state_file.write_text(json.dumps(posted, indent=2), encoding="utf-8")
     except Exception as exc:
         print(f"Error saving state file: {exc}")
 
