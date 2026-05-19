@@ -1,8 +1,8 @@
-import os
 import json
 import requests
-from datetime import datetime, timezone, timedelta
 import random
+import os
+from datetime import datetime, timezone, timedelta
 
 SOFT_EMOJIS = ["🌙", "💫", "⭐", "🌸", "🕊️", "✨"]
 
@@ -10,11 +10,11 @@ MINT_GREEN = 0xA8F0C6      # airing
 PALE_YELLOW = 0xFFF4B8     # upcoming / no date
 WEEKLY_PASTEL = 0xD9E8FF   # summary card pastel
 
+
 def center(text):
-    """Center-align text by adding invisible padding."""
-    if not text:
-        return ""
-    return f"{text}"
+    """Center-align text visually (Discord does not support true centering)."""
+    return text
+
 
 def clip_synopsis(text, limit=450):
     if not text:
@@ -22,6 +22,7 @@ def clip_synopsis(text, limit=450):
     if len(text) <= limit:
         return text
     return text[:limit].rstrip() + "…"
+
 
 def build_embed(item):
     title = item["title"]
@@ -40,54 +41,41 @@ def build_embed(item):
     else:
         color = PALE_YELLOW
 
-    # Countdown badge
-    countdown = ""
-    if next_date:
-        try:
-            dt = datetime.strptime(next_date, "%b %d, %Y").replace(tzinfo=timezone.utc)
-            now = datetime.now(timezone.utc)
-            days = (dt - now).days
-            if days >= 0:
-                emoji = random.choice(SOFT_EMOJIS)
-                countdown = f" ⏳ {days} days left {emoji}"
-        except:
-            pass
-
-    embed_title = center(f"{title}{countdown}")
+    # Title: centered + soft emoji (no countdown)
+    emoji = random.choice(SOFT_EMOJIS)
+    embed_title = center(f"{title} {emoji}")
 
     # Country tag
-    country_tag = ""
-    if country:
-        tag = country.lower()
-        flag = {
-            "thailand": "🇹🇭",
-            "japan": "🇯🇵",
-            "china": "🇨🇳",
-            "south korea": "🇰🇷",
-            "taiwan": "🇹🇼",
-        }.get(country.lower(), "🌍")
-        country_tag = center(f"{flag} {country[:2].upper()} • {status.title()}")
+    flag = {
+        "thailand": "🇹🇭",
+        "japan": "🇯🇵",
+        "china": "🇨🇳",
+        "south korea": "🇰🇷",
+        "taiwan": "🇹🇼",
+    }.get(country.lower() if country else "", "🌍")
 
-    # Fields
+    country_tag = center(f"{flag} {country[:2].upper()} • {status.title()}") if country else ""
+
+    # Build fields (these appear to the right of the poster)
     fields = []
 
     if country:
         fields.append({
-            "name": center("🌍 Country"),
+            "name": "🌍 Country",
             "value": center(country),
             "inline": False
         })
 
     if ep_total:
         fields.append({
-            "name": center("🎞️ Episodes"),
+            "name": "🎞️ Episodes",
             "value": center(f"{ep_total} total"),
             "inline": False
         })
 
     if next_ep and next_date:
         fields.append({
-            "name": center("📅 Next Episode"),
+            "name": "📅 Next Episode",
             "value": center(f"Ep {next_ep} — {next_date}"),
             "inline": False
         })
@@ -99,7 +87,7 @@ def build_embed(item):
             days = (dt - now).days
             if days >= 0:
                 fields.append({
-                    "name": center("⏳ Airs In"),
+                    "name": "⏳ Airs In",
                     "value": center(f"{days} days"),
                     "inline": False
                 })
@@ -107,22 +95,24 @@ def build_embed(item):
             pass
 
     fields.append({
-        "name": center("📡 Status"),
+        "name": "📡 Status",
         "value": center(status.title()),
         "inline": False
     })
 
+    # Build embed (movie-card layout)
     embed = {
         "title": embed_title,
-        "description": center(synopsis),
+        "description": center(synopsis) if synopsis else "",
         "color": color,
+        "thumbnail": {"url": poster} if poster else {},  # poster inside main embed box
         "fields": fields,
-        "image": {"url": poster} if poster else {},
-        "footer": {"text": "🔗 View on MDL", "icon_url": None},
+        "footer": {"text": "🔗 View on MDL"},
         "url": url
     }
 
     return embed
+
 
 def build_weekly_summary(items):
     """Create the weekly grouped embed."""
@@ -168,13 +158,13 @@ def build_weekly_summary(items):
 
     return embed
 
+
 def post_new_items(feed_path):
+    from rss_parser import parse_feed_items
+
     with open(feed_path, "r", encoding="utf-8") as f:
         xml = f.read()
 
-    # Your RSS parser should extract items into dicts.
-    # Assuming you already have a function to do that:
-    from rss_parser import parse_feed_items
     items = parse_feed_items(xml)
 
     webhook_url = os.environ.get("DISCORD_WEBHOOK_URL")
@@ -191,8 +181,18 @@ def post_new_items(feed_path):
                 {
                     "type": 1,
                     "components": [
-                        {"type": 2, "style": 1, "label": "🔔 Track Airing", "custom_id": "track_airing"},
-                        {"type": 2, "style": 1, "label": "📩 Track Finale", "custom_id": "track_finale"},
+                        {
+                            "type": 2,
+                            "style": 1,
+                            "label": "🔔 Track Airing",
+                            "custom_id": "track_airing"
+                        },
+                        {
+                            "type": 2,
+                            "style": 1,
+                            "label": "📩 Track Finale",
+                            "custom_id": "track_finale"
+                        }
                     ]
                 }
             ]
