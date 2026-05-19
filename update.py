@@ -117,8 +117,30 @@ def parse_next_episode_date(html):
     return None
 
 
+def parse_json_ld_description(soup):
+    for script in soup.find_all("script", type="application/ld+json"):
+        if not script.string:
+            continue
+        try:
+            data = json.loads(script.string)
+        except json.JSONDecodeError:
+            continue
+
+        if isinstance(data, dict):
+            description = data.get("description")
+            if description:
+                return description.strip()
+
+        if isinstance(data, list):
+            for item in data:
+                if isinstance(item, dict) and item.get("description"):
+                    return item["description"].strip()
+    return None
+
+
 def parse_synopsis(soup):
     synopsis_selectors = [
+        "div.show-synopsis",
         "div.storyline",
         "div.synopsis",
         "section.show__description",
@@ -127,10 +149,17 @@ def parse_synopsis(soup):
     for selector in synopsis_selectors:
         section = soup.select_one(selector)
         if section:
+            for ui_node in section.select("a.text-primary, ul.mdl-synopsis-languages"):
+                ui_node.decompose()
+
             paragraphs = [p.get_text(" ", strip=True) for p in section.find_all("p") if p.get_text(strip=True)]
             if paragraphs:
                 return "\n\n".join(paragraphs[:2])
+            text = section.get_text(" ", strip=True)
+            if text:
+                return text
     return None
+
 
 def parse_show_page(url):
     html = fetch(url)
@@ -166,6 +195,8 @@ def parse_show_page(url):
     status = get_status(soup)
 
     synopsis = parse_synopsis(soup)
+    if not synopsis:
+        synopsis = parse_json_ld_description(soup)
     if not synopsis:
         synopsis = parse_meta_description(soup)
 
