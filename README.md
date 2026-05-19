@@ -42,7 +42,8 @@ Format:
 {
   "BL": ["title1", "title2"],
   "GL": ["title3"]
-}``` 
+}
+``` 
 
 ###The TMDB scraper automatically excludes blacklisted titles.
 
@@ -85,7 +86,8 @@ Set in GitHub Actions secrets:
 
 ```TMDB_API_KEY=your_key_here
 DISCORD_WEBHOOK_BL=...
-DISCORD_WEBHOOK_GL=...```
+DISCORD_WEBHOOK_GL=...
+```
 
 2. Blacklist file
 Create: data/blacklist.json
@@ -93,7 +95,8 @@ With:
 ```{
   "BL": [],
   "GL": []
-}```
+}
+```
 
 3. Install dependencies
 ```pip install -r requirements.txt```
@@ -110,7 +113,8 @@ feed_gl.xml
 
 state_bl.json
 
-state_gl.json```
+state_gl.json
+```
 
 📁 File Structure
 ```update.py
@@ -124,7 +128,8 @@ data/
 feed_bl.xml
 feed_gl.xml
 state_bl.json
-state_gl.json```
+state_gl.json
+```
 
 🧩 Integration with Wei Wei
 Wei Wei provides:
