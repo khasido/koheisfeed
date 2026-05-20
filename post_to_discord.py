@@ -3,7 +3,7 @@ import requests
 import random
 from datetime import datetime, timezone, timedelta
 from rss_parser import parse_feed_items
-from image_utils import apply_black_gradient_overlay   # ← NEW IMPORT
+from image_utils import apply_cinematic_overlay
 
 SOFT_EMOJIS = ["🌙", "💫", "⭐", "🌸", "🕊️", "✨"]
 MINT_GREEN = 0xA8F0C6
