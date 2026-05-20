@@ -11,42 +11,20 @@ SESSION = requests.Session()
 SESSION.headers.update({"Accept": "application/json"})
 
 # ---------------------------------------------------------
-# CONFIG: keyword NAMES (lowercase, exactly as on TMDB)
+# HARD‑CODED KEYWORD + NETWORK IDs (from your links)
 # ---------------------------------------------------------
 
-BL_KEYWORD_NAMES = {
-    "gay romance",
-    "boys' love (bl)",
-    "gay relationship",
-    "fudanshi",
-}
+BL_KEYWORD_IDS = ["240305", "289844", "265777", "347855"]
+GL_KEYWORD_IDS = ["280003", "9833", "315382"]
 
-GL_KEYWORD_NAMES = {
-    "girls' love (gl)",
-    "lesbian relationship",
-    "lesbian couple",
-}
+OTHER_LGBT_KEYWORD_IDS = ["1862", "158718", "163037"]
 
-COMMON_NETWORKS = {
-    "iqiyi international",
-    "gmm 25",
-    "gagaoolala",
-    "one 31",
-    "line tv",
-}
-
-OTHER_LGBT_KEYWORDS = {
-    "coming out",
-    "lgbt",
-    "lgbt teen",
-}
+NETWORK_IDS = ["6316", "1974", "3266", "1784", "1671"]
 
 # Only shows from these countries are allowed
 PRIORITY_COUNTRIES = ["TH", "JP", "KR", "CN", "TW", "PH", "VN", "HK", "MY"]
 
 # Date window:
-# - first air / release date must NOT be older than 6 months
-# - and NOT more than 2 years in the future
 TODAY = date.today()
 SIX_MONTHS_AGO = TODAY - timedelta(days=6 * 30)
 TWO_YEARS_AHEAD = TODAY + timedelta(days=2 * 365)
@@ -97,14 +75,11 @@ def in_date_window(dstr):
     return True
 
 def extract_keywords(details):
-    """Return list of keyword dicts with 'id' and 'name'."""
     kw_block = details.get("keywords") or {}
 
-    # Movies: {"keywords": [...]}
     if isinstance(kw_block, dict) and isinstance(kw_block.get("keywords"), list):
         return kw_block["keywords"]
 
-    # TV: {"results": [...]}
     if isinstance(kw_block, dict) and isinstance(kw_block.get("results"), list):
         return kw_block["results"]
 
@@ -117,33 +92,39 @@ def extract_keyword_names(details):
     kws = extract_keywords(details)
     return {(k.get("name") or "").lower().strip() for k in kws if k.get("name")}
 
-def extract_network_names(details):
+def extract_network_ids(details):
     nets = details.get("networks") or []
-    return {(n.get("name") or "").lower().strip() for n in nets if n.get("name")}
+    return {str(n.get("id")) for n in nets if n.get("id")}
 
 # ---------------------------------------------------------
-# BL / GL classification (your exact rules)
+# BL / GL classification
 # ---------------------------------------------------------
 
 def classify_bl_gl(details, credits):
-    """
-    Your rules:
-    - If it has any BL tags → BL
-    - If it has any GL tags → GL
-    - If it has both → decide by lead genders
-    - Networks / other LGBT tags NEVER count alone; they only matter
-      if BL/GL tags are present (which we already enforce).
-    """
     kw_names = extract_keyword_names(details)
 
-    has_bl = any(k in kw_names for k in BL_KEYWORD_NAMES)
-    has_gl = any(k in kw_names for k in GL_KEYWORD_NAMES)
+    # BL / GL keyword name sets (lowercase)
+    BL_NAMES = {
+        "gay romance",
+        "boys' love (bl)",
+        "gay relationship",
+        "fudanshi",
+    }
+
+    GL_NAMES = {
+        "girls' love (gl)",
+        "lesbian relationship",
+        "lesbian couple",
+    }
+
+    has_bl = any(k in kw_names for k in BL_NAMES)
+    has_gl = any(k in kw_names for k in GL_NAMES)
 
     # Must have at least one BL or GL tag
     if not has_bl and not has_gl:
         return None
 
-    # Mixed case: both BL and GL tags present
+    # Mixed case → decide by lead genders
     if has_bl and has_gl:
         cast = credits.get("cast") or []
         male_leads = [c for c in cast if c.get("gender") == 2][:2]
@@ -154,7 +135,6 @@ def classify_bl_gl(details, credits):
         if len(female_leads) >= 2 and len(male_leads) == 0:
             return "gl"
 
-        # If truly ambiguous, skip rather than misclassify
         return None
 
     if has_bl:
@@ -169,7 +149,6 @@ def classify_bl_gl(details, credits):
 # ---------------------------------------------------------
 
 def analyze_season(tmdb_id, season_number):
-    """Fetch and analyze the season page to determine correct episode schedule."""
     season = tmdb_get(f"/tv/{tmdb_id}/season/{season_number}")
     if not season or "episodes" not in season:
         return None
@@ -196,20 +175,15 @@ def analyze_season(tmdb_id, season_number):
         if not d:
             continue
 
-        # Future episode → next episode
         if d > TODAY and next_ep_number is None:
             next_ep_number = ep_num
             next_ep_date = d.strftime("%b %d, %Y")
 
-        # Past or today → last episode
         if d <= TODAY:
             last_ep_number = ep_num
             last_ep_date = d.strftime("%b %d, %Y")
 
-    if next_ep_number:
-        status = "ongoing"
-    else:
-        status = "ended"
+    status = "ongoing" if next_ep_number else "ended"
 
     return {
         "next_ep_number": next_ep_number,
@@ -232,16 +206,13 @@ def build_item(entry, kind):
     if kind == "tv":
         append = "keywords,credits,seasons"
 
-    details = tmdb_get(
-        f"/{kind}/{tmdb_id}",
-        append_to_response=append
-    )
+    details = tmdb_get(f"/{kind}/{tmdb_id}", append_to_response=append)
     if not details:
         return None
 
     credits = details.get("credits") or {}
 
-    # Country filter: ONLY priority countries
+    # Country filter
     if kind == "tv":
         origin = details.get("origin_country") or []
         country = origin[0] if origin else None
@@ -252,12 +223,8 @@ def build_item(entry, kind):
     if not country or country not in PRIORITY_COUNTRIES:
         return None
 
-    # Date window filter: first_air_date or release_date
-    if kind == "tv":
-        first_date_str = details.get("first_air_date")
-    else:
-        first_date_str = details.get("release_date")
-
+    # Date window
+    first_date_str = details.get("first_air_date") if kind == "tv" else details.get("release_date")
     if not in_date_window(first_date_str):
         return None
 
@@ -266,7 +233,7 @@ def build_item(entry, kind):
     if category not in ("bl", "gl"):
         return None
 
-    # TV vs Movie status and episode info
+    # TV logic
     if kind == "tv":
         seasons = details.get("seasons") or []
         valid_seasons = [s for s in seasons if s.get("season_number", 0) > 0]
@@ -278,7 +245,6 @@ def build_item(entry, kind):
         if not season_info:
             return None
 
-        # If season-level status says ended, skip (you don't want ended shows)
         if season_info["status"] == "ended":
             return None
 
@@ -288,7 +254,7 @@ def build_item(entry, kind):
         ep_total = season_info["last_ep_number"]
 
     else:
-        # Movies: status based on release date vs today, but still within window
+        # Movies
         d = parse_date(first_date_str)
         next_ep_number = None
         next_ep_date = None
@@ -298,7 +264,7 @@ def build_item(entry, kind):
             status = "upcoming"
             next_ep_date = d.strftime("%b %d, %Y")
         else:
-            status = "ended"  # released already; but still within 6m–2y window
+            return None  # released movies are not allowed
 
     title = details.get("name") or details.get("title")
     url = f"https://www.themoviedb.org/{kind}/{tmdb_id}"
@@ -321,29 +287,31 @@ def build_item(entry, kind):
     }
 
 # ---------------------------------------------------------
-# Broad discover, then strict filtering
+# Discover logic (Option B: BL OR GL OR Networks)
 # ---------------------------------------------------------
 
 def discover_candidates(kind, max_pages=5):
-    """
-    Broad discover by Drama + Romance, then strict filtering by:
-    - country
-    - date window
-    - BL/GL tags
-    - season-level status (for TV)
-    """
     results = []
     seen_ids = set()
 
+    keyword_ids = BL_KEYWORD_IDS + GL_KEYWORD_IDS
+    keyword_query = "|".join(keyword_ids)
+
+    network_query = "|".join(NETWORK_IDS)
+
     for page in range(1, max_pages + 1):
         time.sleep(0.3)
-        data = tmdb_get(
-            f"/discover/{kind}",
-            include_adult=False,
-            sort_by="popularity.desc",
-            with_genres="18,10749",  # Drama + Romance
-            page=page,
-        )
+
+        params = {
+            "include_adult": False,
+            "sort_by": "popularity.desc",
+            "with_genres": "18,10749",
+            "page": page,
+            "with_keywords": keyword_query,
+            "with_networks": network_query,
+        }
+
+        data = tmdb_get(f"/discover/{kind}", **params)
         if not data or "results" not in data or not data["results"]:
             break
 
@@ -372,78 +340,4 @@ def fetch_gl_items():
     tv_items = discover_candidates("tv")
     movie_items = discover_candidates("movie")
     return [i for i in tv_items + movie_items if i["category"] == "gl"]
-def debug_show(tmdb_id, kind="tv"):
-    """
-    Debug helper: prints everything needed to understand why a show
-    was included or excluded.
-    """
 
-    print("\n================ DEBUG TMDB ITEM ================")
-    print(f"ID: {tmdb_id}  |  Type: {kind.upper()}")
-
-    append = "keywords,credits,seasons" if kind == "tv" else "keywords,credits"
-    details = tmdb_get(f"/{kind}/{tmdb_id}", append_to_response=append)
-
-    if not details:
-        print("❌ Could not fetch details.")
-        return
-
-    # --- BASIC INFO ---
-    title = details.get("name") or details.get("title")
-    print(f"Title: {title}")
-
-    # --- COUNTRY ---
-    if kind == "tv":
-        origin = details.get("origin_country") or []
-        country = origin[0] if origin else None
-    else:
-        countries = details.get("production_countries") or []
-        country = countries[0].get("iso_3166_1") if countries else None
-
-    print(f"Country: {country}  |  Allowed: {country in PRIORITY_COUNTRIES}")
-
-    # --- DATE WINDOW ---
-    date_str = details.get("first_air_date") if kind == "tv" else details.get("release_date")
-    print(f"Date: {date_str}  |  In window: {in_date_window(date_str)}")
-
-    # --- KEYWORDS ---
-    kw_names = extract_keyword_names(details)
-    print(f"Keywords: {kw_names}")
-
-    has_bl = any(k in kw_names for k in BL_KEYWORD_NAMES)
-    has_gl = any(k in kw_names for k in GL_KEYWORD_NAMES)
-    has_other = any(k in kw_names for k in OTHER_LGBT_KEYWORDS)
-
-    print(f"BL tags: {has_bl}  |  GL tags: {has_gl}  |  Other LGBT tags: {has_other}")
-
-    # --- NETWORKS ---
-    nets = extract_network_names(details)
-    print(f"Networks: {nets}")
-
-    # --- CREDITS ---
-    credits = details.get("credits") or {}
-    cast = credits.get("cast") or []
-    male_leads = [c.get("name") for c in cast if c.get("gender") == 2][:3]
-    female_leads = [c.get("name") for c in cast if c.get("gender") == 1][:3]
-
-    print(f"Male leads: {male_leads}")
-    print(f"Female leads: {female_leads}")
-
-    # --- CATEGORY ---
-    category = classify_bl_gl(details, credits)
-    print(f"Classifier result: {category}")
-
-    # --- SEASON‑LEVEL INSPECTION ---
-    if kind == "tv":
-        seasons = details.get("seasons") or []
-        valid_seasons = [s for s in seasons if s.get("season_number", 0) > 0]
-        if valid_seasons:
-            season_number = max(s["season_number"] for s in valid_seasons)
-            print(f"Inspecting season: {season_number}")
-
-            season_info = analyze_season(tmdb_id, season_number)
-            print(f"Season info: {season_info}")
-        else:
-            print("❌ No valid seasons found.")
-
-    print("================ END DEBUG ======================\n")
