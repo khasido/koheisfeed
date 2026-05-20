@@ -447,6 +447,3 @@ def debug_show(tmdb_id, kind="tv"):
             print("❌ No valid seasons found.")
 
     print("================ END DEBUG ======================\n")
-from tmdb_fetcher import debug_show
-
-debug_show(244189, "tv")
