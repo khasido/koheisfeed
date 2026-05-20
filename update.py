@@ -29,7 +29,29 @@ def sort_key(item):
     return (priority, dt, item["title"].lower())
 
 def process_feed(items, state, webhook_url, state_path):
-    # Sort items
+        # HARD FILTER: remove anything that should not be posted
+    filtered = []
+    for it in items:
+        # Must have category
+        if it["category"] not in ("bl", "gl"):
+            continue
+
+        # Must have country
+        if not it["country_code"] or it["country_code"] not in PRIORITY_COUNTRIES:
+            continue
+
+        # Must have next episode date (TV) or future release date (movie)
+        if it["status"] == "ended":
+            continue
+
+        # Must have next episode date
+        if not it["next_ep_date"]:
+            continue
+
+        filtered.append(it)
+
+    items = filtered
+
     items.sort(key=sort_key)
 
     # Track which IDs still exist
