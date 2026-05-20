@@ -1,3 +1,28 @@
 {
-  "items": {}
+  "items": {
+    "274622": {
+      "next_ep_date": "May 21, 2026",
+      "next_ep_number": 8,
+      "status": "ongoing",
+      "discord_message_id": null
+    },
+    "244189": {
+      "next_ep_date": "May 21, 2026",
+      "next_ep_number": 10,
+      "status": "ongoing",
+      "discord_message_id": null
+    },
+    "317056": {
+      "next_ep_date": "May 22, 2026",
+      "next_ep_number": 5,
+      "status": "ongoing",
+      "discord_message_id": null
+    },
+    "310511": {
+      "next_ep_date": "May 26, 2026",
+      "next_ep_number": 2,
+      "status": "ongoing",
+      "discord_message_id": null
+    }
+  }
 }
