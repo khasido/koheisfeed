@@ -2,7 +2,7 @@
 import os
 import time
 import requests
-import re
+from datetime import datetime
 
 TMDB_API_KEY = os.getenv("TMDB_API_KEY")
 BASE_URL = "https://api.themoviedb.org/3"
@@ -11,7 +11,30 @@ SESSION = requests.Session()
 SESSION.headers.update({"Accept": "application/json"})
 
 # ---------------------------------------------------------
-# Retry logic + timeout
+# CONFIG: EXACT TMDB KEYWORD IDs (OR logic)
+# ---------------------------------------------------------
+
+# Replace these with the exact IDs you verified on TMDB
+BL_KEYWORD_IDS = {
+    210024,  # Boys' Love (BL)
+    158718,  # Gay Romance / Gay Relationship
+    210025,  # Fudanshi
+    210026,  # Fujoshi
+}
+
+GL_KEYWORD_IDS = {
+    12377,   # Lesbian
+    210027,  # Girls' Love (GL)
+}
+
+# ---------------------------------------------------------
+# Country priority (used later in update.py)
+# ---------------------------------------------------------
+
+PRIORITY_COUNTRIES = ["TH", "JP", "KR", "CN", "TW", "PH", "VN", "HK", "MY"]
+
+# ---------------------------------------------------------
+# TMDB GET with retries + timeout
 # ---------------------------------------------------------
 
 def tmdb_get(path, **params):
@@ -26,7 +49,6 @@ def tmdb_get(path, **params):
             )
             resp.raise_for_status()
             return resp.json()
-
         except Exception:
             if attempt == 4:
                 raise
@@ -35,126 +57,42 @@ def tmdb_get(path, **params):
     return None
 
 # ---------------------------------------------------------
-# BL/GL detection signals
+# Extract keyword IDs from detail page
 # ---------------------------------------------------------
 
-BL_KEYWORDS = {
-    "boys love", "bl", "gay", "mlm", "queer", "same-sex",
-    "gay romance", "gay relationship", "male couple"
-}
+def extract_keyword_ids(details):
+    kw_block = details.get("keywords") or {}
 
-GL_KEYWORDS = {
-    "girls love", "gl", "lesbian", "wlw", "yuri", "sapphic",
-    "female couple", "women love"
-}
+    # Movies: {"keywords": [...]}
+    if isinstance(kw_block, dict) and isinstance(kw_block.get("keywords"), list):
+        return {k["id"] for k in kw_block["keywords"] if "id" in k}
 
-BL_STUDIOS = {
-    "GMMTV", "Studio Wabi Sabi", "Mandee", "WeTV", "iQIYI",
-    "TV Asahi", "Line TV", "TV Thunder"
-}
+    # TV: {"results": [...]}
+    if isinstance(kw_block, dict) and isinstance(kw_block.get("results"), list):
+        return {k["id"] for k in kw_block["results"] if "id" in k}
 
-GL_STUDIOS = {
-    "GagaOOLala", "Fuji TV", "TBS", "NHK"
-}
+    # Rare fallback
+    if isinstance(kw_block, list):
+        return {k["id"] for k in kw_block if "id" in k}
 
-PRIORITY_COUNTRIES = ["TH", "JP", "KR", "CN", "TW", "PH", "VN", "HK", "MY"]
+    return set()
 
 # ---------------------------------------------------------
-# Utility: normalize text
+# Classify strictly by TMDB keyword IDs (OR logic)
 # ---------------------------------------------------------
 
-def normalize(text):
-    if not text:
-        return ""
-    return text.lower().strip()
+def classify_by_keywords(details):
+    kw_ids = extract_keyword_ids(details)
 
-# ---------------------------------------------------------
-# Deep inspection classifier
-# ---------------------------------------------------------
-
-def classify_lgbtq(details, credits):
-    overview = normalize(details.get("overview", ""))
-    title = normalize(details.get("name") or details.get("title") or "")
-    country = details.get("origin_country", [""])[0]
-    networks = [n.get("name", "") for n in details.get("networks", [])]
-    studios = [s.get("name", "") for s in details.get("production_companies", [])]
-
-    # -----------------------------
-    # STRONG SIGNALS
-    # -----------------------------
-
-    strong = 0
-    weak = 0
-
-    # 1. Overview text
-    if any(word in overview for word in BL_KEYWORDS):
-        strong += 1
-        bl_flag = True
-    elif any(word in overview for word in GL_KEYWORDS):
-        strong += 1
-        bl_flag = False
-    else:
-        bl_flag = None
-
-    # 2. Cast gender pairing
-    cast = credits.get("cast", [])
-    male_leads = [c for c in cast if c.get("gender") == 2][:2]
-    female_leads = [c for c in cast if c.get("gender") == 1][:2]
-
-    if len(male_leads) >= 2:
-        strong += 1
-        bl_flag = True
-
-    if len(female_leads) >= 2:
-        strong += 1
-        bl_flag = False
-
-    # 3. Studio/network
-    if any(s in BL_STUDIOS for s in studios + networks):
-        strong += 1
-        bl_flag = True
-
-    if any(s in GL_STUDIOS for s in studios + networks):
-        strong += 1
-        bl_flag = False
-
-    # -----------------------------
-    # WEAK SIGNALS
-    # -----------------------------
-
-    # 4. Country
-    if country in PRIORITY_COUNTRIES:
-        weak += 1
-
-    # 5. Title patterns
-    if re.search(r"\bbl\b", title) or "boys love" in title:
-        weak += 1
-        bl_flag = True
-
-    if re.search(r"\bgl\b", title) or "girls love" in title or "yuri" in title:
-        weak += 1
-        bl_flag = False
-
-    # 6. Genres
-    genres = [g["name"].lower() for g in details.get("genres", [])]
-    if "romance" in genres:
-        weak += 1
-
-    # ---------------------------------------------------------
-    # DECISION RULE
-    # ---------------------------------------------------------
-
-    # Must have at least 1 strong signal OR 1 strong + 2 weak
-    if strong >= 1:
-        return "bl" if bl_flag else "gl"
-
-    if strong == 0 and weak >= 3:
-        return "bl" if bl_flag else "gl"
+    if kw_ids & BL_KEYWORD_IDS:
+        return "bl"
+    if kw_ids & GL_KEYWORD_IDS:
+        return "gl"
 
     return None
 
 # ---------------------------------------------------------
-# Build item
+# Build normalized item
 # ---------------------------------------------------------
 
 def build_item(entry, kind):
@@ -164,24 +102,30 @@ def build_item(entry, kind):
 
     details = tmdb_get(
         f"/{kind}/{tmdb_id}",
-        append_to_response="next_episode_to_air,last_episode_to_air,credits"
+        append_to_response="next_episode_to_air,last_episode_to_air,keywords"
     )
 
     if not details:
         return None
 
-    # Skip ended shows
-    status_raw = details.get("status", "").lower()
-    if status_raw in ["ended", "canceled", "cancelled"]:
+    # -----------------------------------------------------
+    # STRICT STATUS HANDLING (trust TMDB completely)
+    # -----------------------------------------------------
+    status_raw = (details.get("status") or "").lower()
+
+    if status_raw in ["ended", "canceled", "cancelled", "completed", "finished"]:
+        return None  # never include ended shows
+
+    # -----------------------------------------------------
+    # STRICT TAG CLASSIFICATION (OR logic)
+    # -----------------------------------------------------
+    category = classify_by_keywords(details)
+    if category not in ("bl", "gl"):
         return None
 
-    credits = details.get("credits", {})
-
-    # Classify BL/GL
-    category = classify_lgbtq(details, credits)
-    if category not in ["bl", "gl"]:
-        return None
-
+    # -----------------------------------------------------
+    # Extract fields
+    # -----------------------------------------------------
     title = details.get("name") or details.get("title")
     url = f"https://www.themoviedb.org/{kind}/{tmdb_id}"
 
@@ -197,6 +141,9 @@ def build_item(entry, kind):
     if kind == "tv":
         ep_total = details.get("number_of_episodes")
 
+    # -----------------------------------------------------
+    # STRICT NEXT-EPISODE HANDLING
+    # -----------------------------------------------------
     next_ep = details.get("next_episode_to_air")
     next_ep_number = None
     next_ep_date = None
@@ -206,11 +153,12 @@ def build_item(entry, kind):
         air_date = next_ep.get("air_date")
         if air_date:
             try:
-                dt = time.strptime(air_date, "%Y-%m-%d")
-                next_ep_date = time.strftime("%b %d, %Y", dt)
-            except:
+                dt = datetime.strptime(air_date, "%Y-%m-%d")
+                next_ep_date = dt.strftime("%b %d, %Y")
+            except Exception:
                 next_ep_date = air_date
 
+    # If TMDB has a next episode → ongoing, else upcoming
     status = "ongoing" if next_ep_number else "upcoming"
 
     return {
@@ -223,11 +171,11 @@ def build_item(entry, kind):
         "next_ep_number": next_ep_number,
         "next_ep_date": next_ep_date,
         "status": status,
-        "category": category
+        "category": category,
     }
 
 # ---------------------------------------------------------
-# Broad discovery
+# Broad discovery (Drama + Romance only)
 # ---------------------------------------------------------
 
 def discover_candidates(kind):
