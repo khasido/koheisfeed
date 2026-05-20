@@ -14,6 +14,11 @@ FONT_TITLE = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bol
 FONT_META  = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 32)
 FONT_DESC  = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 28)
 
+def measure_text(draw, text, font):
+    bbox = draw.textbbox((0, 0), text, font=font)
+    width = bbox[2] - bbox[0]
+    height = bbox[3] - bbox[1]
+    return width, height
 
 def get_cache_filename(url):
     import hashlib
@@ -63,19 +68,26 @@ def apply_cinematic_overlay(item):
     # TEXT BLOCKS
     # -----------------------------
 
-    # Title
-    title = f"✦ {item['title']} ✦"
+    # Title (centered)
+    tw, th = measure_text(draw, title, FONT_TITLE)
+    draw.text(((W - tw) / 2, base_y), title, font=FONT_TITLE, fill="white")
 
-    # Metadata
-    meta1 = f"{item['country_code']} • {item['category']} • {item['status'].capitalize()}"
-    meta2 = f"Ep {item['episode_count'] or '—'} • Next {item['next_ep_date'] or '—'}"
+    # Metadata line 1
+    y2 = base_y + th + 10
+    mw1, mh1 = measure_text(draw, meta1, FONT_META)
+    draw.text(((W - mw1) / 2, y2), meta1, font=FONT_META, fill="white")
 
-    # Description (clipped + justified)
-    desc_raw = item.get("overview", "")
-    desc_clipped = desc_raw[:350].rsplit(" ", 1)[0] + "…"
+    # Metadata line 2
+    y3 = y2 + mh1 + 5
+    mw2, mh2 = measure_text(draw, meta2, FONT_META)
+    draw.text(((W - mw2) / 2, y3), meta2, font=FONT_META, fill="white")
 
-    # Wrap description to ~50 chars per line
-    wrapped = textwrap.fill(desc_clipped, width=50)
+    #Description (justified block)
+    y4 = y3 + mh2 + 20
+    for line in wrapped.split("\n"):
+    lw, lh = measure_text(draw, line, FONT_DESC)
+    draw.text(((W - lw) / 2, y4), line, font=FONT_DESC, fill="white")
+    y4 += lh + 4
 
     # -----------------------------
     # POSITIONING
