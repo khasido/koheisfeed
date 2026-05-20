@@ -265,7 +265,8 @@ def build_item(entry_id, kind):
 # HTML SCRAPER (10 pages, early stop)
 # ---------------------------------------------------------
 
-MAX_PAGES = 3  # TEMP: keep this small while we debug
+# How many pages to scrape per keyword
+MAX_PAGES = 5
 
 def scrape_keyword_pages(keyword_id, slug, kind):
     ids = set()
@@ -279,9 +280,11 @@ def scrape_keyword_pages(keyword_id, slug, kind):
             print(f"[{kind}] keyword {keyword_id} page {page}: no html, stopping")
             break
 
-        page_ids = set(map(int, re.findall(r'/'+kind+r'/(\d+)', html)))
+        # Extract TMDB IDs from the page
+        page_ids = set(map(int, re.findall(r'/' + kind + r'/(\d+)', html)))
         print(f"[{kind}] keyword {keyword_id} page {page}: found {len(page_ids)} ids")
 
+        # Early stop if page is empty
         if not page_ids:
             print(f"[{kind}] keyword {keyword_id} page {page}: empty, stopping")
             break
