@@ -1,4 +1,4 @@
-# update.py
+# update.py — UPDATED FOR NEW SCRAPER LOGIC
 import os
 from pathlib import Path
 from datetime import datetime
@@ -13,11 +13,16 @@ from post_to_discord import post_or_update
 
 print(">>> UPDATE.PY STARTED")
 
-PRIORITY_COUNTRIES = ["TH", "JP", "KR", "CN", "TW", "PH", "VN", "HK", "MY"]
-
 def sort_key(item):
-    # Priority: 0 = prioritized country, 1 = others
-    priority = 0 if item["country_code"] in PRIORITY_COUNTRIES else 1
+    """
+    Sorting rules:
+    1. Asian priority first (item["priority"] == True)
+    2. Earliest next episode date
+    3. Alphabetical title
+    """
+
+    # Priority: Asian = 0, others = 1
+    priority = 0 if item.get("priority") else 1
 
     # Parse next episode date
     if item["next_ep_date"]:
@@ -30,32 +35,41 @@ def sort_key(item):
 
     return (priority, dt, item["title"].lower())
 
+
 def process_feed(items, state, webhook_url, state_path):
     print(">>> PROCESSING FEED, ITEMS:", len(items))
-# HARD FILTER: remove anything that should not be posted
+
     filtered = []
     for it in items:
-        # Must have category
+
+        # Must have BL or GL category
         if it["category"] not in ("bl", "gl"):
             continue
 
-        # Must have country
-        if not it["country_code"] or it["country_code"] not in PRIORITY_COUNTRIES:
-            continue
-
-        # Must have next episode date (TV) or future release date (movie)
+        # Must not be ended
         if it["status"] == "ended":
             continue
 
-        # Must have next episode date
+        # Must have next episode date (TV) or future release date (movie)
         if not it["next_ep_date"]:
             continue
+
+        # Movies: ensure release date is in the future
+        if it["episode_count"] is None and it["status"] == "upcoming":
+            # Already handled by fetcher, but double-check
+            try:
+                d = datetime.strptime(it["next_ep_date"], "%b %d, %Y").date()
+                if d <= datetime.today().date():
+                    continue
+            except:
+                continue
 
         filtered.append(it)
 
     items = filtered
     print(">>> PROCESSING FEED, ITEMS AFTER FILTER:", len(items))
-    
+
+    # Sort using new priority logic
     items.sort(key=sort_key)
 
     # Track which IDs still exist
@@ -83,6 +97,7 @@ def process_feed(items, state, webhook_url, state_path):
 
     save_state(state_path, state)
 
+
 def main():
     bl_webhook = os.getenv("DISCORD_WEBHOOK_BL")
     gl_webhook = os.getenv("DISCORD_WEBHOOK_GL")
@@ -99,7 +114,6 @@ def main():
     process_feed(bl_items, bl_state, bl_webhook, "state_bl.json")
     process_feed(gl_items, gl_state, gl_webhook, "state_gl.json")
 
+
 if __name__ == "__main__":
     main()
-
-
