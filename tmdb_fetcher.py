@@ -196,4 +196,4 @@ def build_item(entry_id, kind):
     time.sleep(0.15)
 
     append = "keywords,credits" + (",seasons" if kind == "tv" else "")
-    details = tmdb_get(f"/{kind}/{tmdb
+    details = tmdb_get(f"/{kind}/{tmdb_id}", append_to_response=append)
