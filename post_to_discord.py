@@ -40,6 +40,9 @@ def build_embed(item):
 
 def discord_post(webhook_url, payload):
     r = requests.post(webhook_url, json=payload)
+    
+print("STATUS:", r.status_code)
+print("RESPONSE:", r.text)
 
     # Discord returns 204 No Content unless ?wait=true is used
     if r.status_code in (200, 204):
@@ -77,6 +80,8 @@ def post_or_update(item, webhook_url, message_id):
             }
         ]
     }
+print("WEBHOOK URL:", webhook_url)
+print("PAYLOAD:", payload)
 
     if message_id:
         # Delete + repost to reorder correctly
