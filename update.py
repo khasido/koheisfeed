@@ -11,6 +11,8 @@ from state_manager import (
 )
 from post_to_discord import post_or_update
 
+print(">>> UPDATE.PY STARTED")
+
 PRIORITY_COUNTRIES = ["TH", "JP", "KR", "CN", "TW", "PH", "VN", "HK", "MY"]
 
 def sort_key(item):
@@ -29,7 +31,9 @@ def sort_key(item):
     return (priority, dt, item["title"].lower())
 
 def process_feed(items, state, webhook_url, state_path):
-        # HARD FILTER: remove anything that should not be posted
+        
+        print(">>> PROCESSING FEED, ITEMS:", len(items))
+# HARD FILTER: remove anything that should not be posted
     filtered = []
     for it in items:
         # Must have category
@@ -84,6 +88,9 @@ def main():
 
     bl_items = fetch_bl_items()
     gl_items = fetch_gl_items()
+
+    print(">>> BL ITEMS:", len(bl_items))
+    print(">>> GL ITEMS:", len(gl_items))
 
     bl_state = load_state("state_bl.json")
     gl_state = load_state("state_gl.json")
