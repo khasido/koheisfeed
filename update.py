@@ -47,7 +47,7 @@ def process_feed(items, state, webhook_url, state_path):
     for it in items:
 
         # Category now uppercase ("BL"/"GL")
-        if it["category"] not in ("BL", "GL"):
+        if it["category"].lower() not in ("bl", "gl"):
             continue
 
         # Must not be ended
