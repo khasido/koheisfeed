@@ -28,7 +28,7 @@ def build_embed(item):
         "color": MINT_GREEN,
         "description": shorten(item.get("overview", ""), 300),
         "image": {"url": item["poster"]},  # TMDB URL — valid for Discord
-        "footer": {"text": "Updated automatically • Wei Wei Feed"}
+        "footer": {"text": "Updated automatically • Kohei Feed"}
     }
 
     return embed
