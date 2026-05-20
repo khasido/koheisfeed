@@ -94,6 +94,4 @@ def main():
 if __name__ == "__main__":
     main()
 
-from tmdb_fetcher import debug_show
 
-debug_show(244189, "tv")
