@@ -10,6 +10,13 @@ MINT_GREEN = 0xA8F0C6
 PALE_YELLOW = 0xFFF4B8
 WEEKLY_PASTEL = 0xD9E8FF
 
+def shorten(text, limit=300):
+    if not text:
+        return ""
+    if len(text) <= limit:
+        return text
+    return text[:limit].rsplit(" ", 1)[0] + "…"
+
 def center(text):
     return text
 
@@ -26,7 +33,8 @@ def build_embed(item):
         f"**Episodes:** {item['episode_count'] or '—'}\n"
         f"**Next Episode:** {item['next_ep_date'] or '—'}\n"
         f"**Status:** {item['status'].capitalize()}\n\n"
-        f"*{item.get('overview', '')}*"
+        f"*{shorten(item.get('overview', ''))}*"
+
     )
 
     embed = {
