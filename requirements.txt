@@ -3,4 +3,4 @@ beautifulsoup4
 lxml
 python-dateutil
 pytz
-
+Pillow
