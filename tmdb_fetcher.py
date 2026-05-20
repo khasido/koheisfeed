@@ -1,4 +1,4 @@
-# tmdb_fetcher.py — FINAL VERSION (Keyword Endpoint Fetcher)
+# tmdb_fetcher.py — DIAGNOSTIC VERSION (Keyword Endpoint Fetcher)
 
 import os
 import time
@@ -11,10 +11,6 @@ BASE_URL = "https://api.themoviedb.org/3"
 SESSION = requests.Session()
 SESSION.headers.update({"Accept": "application/json"})
 
-# ---------------------------------------------------------
-# HARD‑CODED KEYWORD IDs
-# ---------------------------------------------------------
-
 BL_KEYWORD_IDS = ["240305", "289844", "265777", "347855"]
 GL_KEYWORD_IDS = ["280003", "9833", "315382"]
 
@@ -24,9 +20,6 @@ TODAY = date.today()
 SIX_MONTHS_AGO = TODAY - timedelta(days=6 * 30)
 TWO_YEARS_AHEAD = TODAY + timedelta(days=2 * 365)
 
-# ---------------------------------------------------------
-# TMDB GET
-# ---------------------------------------------------------
 
 def tmdb_get(path, **params):
     params["api_key"] = TMDB_API_KEY
@@ -40,16 +33,14 @@ def tmdb_get(path, **params):
             )
             resp.raise_for_status()
             return resp.json()
-        except Exception:
+        except Exception as e:
             if attempt == 4:
+                print(f"❌ TMDB ERROR on {path}: {e}")
                 return None
             time.sleep(0.5)
 
     return None
 
-# ---------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------
 
 def parse_date(dstr):
     if not dstr:
@@ -58,6 +49,7 @@ def parse_date(dstr):
         return datetime.strptime(dstr, "%Y-%m-%d").date()
     except Exception:
         return None
+
 
 def in_date_window(dstr):
     d = parse_date(dstr)
@@ -68,6 +60,7 @@ def in_date_window(dstr):
     if d > TWO_YEARS_AHEAD:
         return False
     return True
+
 
 def extract_keywords(details):
     kw_block = details.get("keywords") or {}
@@ -83,13 +76,11 @@ def extract_keywords(details):
 
     return []
 
+
 def extract_keyword_names(details):
     kws = extract_keywords(details)
     return {(k.get("name") or "").lower().strip() for k in kws if k.get("name")}
 
-# ---------------------------------------------------------
-# BL / GL classification
-# ---------------------------------------------------------
 
 def classify_bl_gl(details, credits):
     kw_names = extract_keyword_names(details)
@@ -132,17 +123,16 @@ def classify_bl_gl(details, credits):
 
     return None
 
-# ---------------------------------------------------------
-# Season-level inspection
-# ---------------------------------------------------------
 
 def analyze_season(tmdb_id, season_number):
     season = tmdb_get(f"/tv/{tmdb_id}/season/{season_number}")
     if not season or "episodes" not in season:
+        print(f"[tv] reject {tmdb_id}: no season data")
         return None
 
     episodes = season["episodes"]
     if not episodes:
+        print(f"[tv] reject {tmdb_id}: empty episodes")
         return None
 
     episodes = sorted(episodes, key=lambda e: e.get("episode_number", 0))
@@ -181,9 +171,6 @@ def analyze_season(tmdb_id, season_number):
         "status": status,
     }
 
-# ---------------------------------------------------------
-# Build normalized item
-# ---------------------------------------------------------
 
 def build_item(entry, kind):
     tmdb_id = entry["id"]
@@ -196,11 +183,11 @@ def build_item(entry, kind):
 
     details = tmdb_get(f"/{kind}/{tmdb_id}", append_to_response=append)
     if not details:
+        print(f"[{kind}] reject {tmdb_id}: no details")
         return None
 
     credits = details.get("credits") or {}
 
-    # Country
     if kind == "tv":
         origin = details.get("origin_country") or []
         country = origin[0] if origin else None
@@ -209,23 +196,24 @@ def build_item(entry, kind):
         country = countries[0].get("iso_3166_1") if countries else None
 
     if not country:
+        print(f"[{kind}] reject {tmdb_id}: no country")
         return None
 
-    # Date window
     first_date_str = details.get("first_air_date") if kind == "tv" else details.get("release_date")
     if not in_date_window(first_date_str):
+        print(f"[{kind}] reject {tmdb_id}: date {first_date_str}")
         return None
 
-    # BL/GL classification
     category = classify_bl_gl(details, credits)
     if category not in ("bl", "gl"):
+        print(f"[{kind}] reject {tmdb_id}: not BL/GL")
         return None
 
-    # TV logic
     if kind == "tv":
         seasons = details.get("seasons") or []
         valid_seasons = [s for s in seasons if s.get("season_number", 0) > 0]
         if not valid_seasons:
+            print(f"[tv] reject {tmdb_id}: no valid seasons")
             return None
 
         season_number = max(s["season_number"] for s in valid_seasons)
@@ -234,6 +222,11 @@ def build_item(entry, kind):
             return None
 
         if season_info["status"] == "ended":
+            print(f"[tv] reject {tmdb_id}: ended")
+            return None
+
+        if not season_info["next_ep_date"]:
+            print(f"[tv] reject {tmdb_id}: no next ep date")
             return None
 
         next_ep_number = season_info["next_ep_number"]
@@ -244,6 +237,7 @@ def build_item(entry, kind):
     else:
         d = parse_date(first_date_str)
         if not d or d <= TODAY:
+            print(f"[movie] reject {tmdb_id}: movie already released or bad date {first_date_str}")
             return None
 
         next_ep_number = None
@@ -258,6 +252,7 @@ def build_item(entry, kind):
     if details.get("poster_path"):
         poster = f"https://image.tmdb.org/t/p/w500{details['poster_path']}"
 
+    print(f"[{kind}] ACCEPT {tmdb_id}: {title}")
     return {
         "id": tmdb_id,
         "title": title,
@@ -271,35 +266,38 @@ def build_item(entry, kind):
         "category": category,
     }
 
-# ---------------------------------------------------------
-# Keyword endpoint fetchers
-# ---------------------------------------------------------
 
 def fetch_keyword_items(keyword_id, kind):
     results = []
     page = 1
+
+    print(f"\n>>> FETCH KEYWORD {keyword_id} ({kind})")
 
     while True:
         time.sleep(0.2)
 
         data = tmdb_get(f"/keyword/{keyword_id}/{kind}", page=page)
         if not data or "results" not in data:
+            print(f"[{kind}] keyword {keyword_id}: no data on page {page}")
             break
 
-        results.extend(data["results"])
+        page_results = data["results"]
+        print(f"[{kind}] keyword {keyword_id}: page {page} -> {len(page_results)} results")
+        results.extend(page_results)
 
-        if page >= data.get("total_pages", 1):
+        total_pages = data.get("total_pages", 1)
+        if page >= total_pages:
             break
 
         page += 1
 
+    print(f"[{kind}] keyword {keyword_id}: TOTAL {len(results)} results\n")
     return results
 
-# ---------------------------------------------------------
-# Main candidate discovery
-# ---------------------------------------------------------
 
 def discover_candidates(kind):
+    print(f"\n=== DISCOVER VIA KEYWORDS ({kind.upper()}) START ===")
+
     combined = []
     seen = set()
 
@@ -313,22 +311,25 @@ def discover_candidates(kind):
                 seen.add(eid)
                 combined.append(entry)
 
+    print(f"[{kind}] combined unique keyword results: {len(combined)}")
+
     results = []
     for entry in combined:
         item = build_item(entry, kind)
         if item:
             results.append(item)
 
+    print(f"[{kind}] FINAL ITEMS AFTER build_item: {len(results)}")
+    print(f"=== DISCOVER VIA KEYWORDS ({kind.upper()}) END ===\n")
+
     return results
 
-# ---------------------------------------------------------
-# Public fetchers
-# ---------------------------------------------------------
 
 def fetch_bl_items():
     tv_items = discover_candidates("tv")
     movie_items = discover_candidates("movie")
     return [i for i in tv_items + movie_items if i["category"] == "bl"]
+
 
 def fetch_gl_items():
     tv_items = discover_candidates("tv")
