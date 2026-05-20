@@ -9,9 +9,11 @@ CACHE_DIR = "cache/posters"
 os.makedirs(CACHE_DIR, exist_ok=True)
 
 # Bold display font (Montserrat-like)
-FONT_TITLE = ImageFont.truetype("fonts/Montserrat-Bold.ttf", 48)
-FONT_META = ImageFont.truetype("fonts/Montserrat-SemiBold.ttf", 32)
-FONT_DESC = ImageFont.truetype("fonts/Montserrat-Regular.ttf", 28)
+# Built‑in fonts available on GitHub Actions
+FONT_TITLE = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 48)
+FONT_META  = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 32)
+FONT_DESC  = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 28)
+
 
 def get_cache_filename(url):
     import hashlib
