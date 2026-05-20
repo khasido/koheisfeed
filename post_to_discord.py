@@ -10,35 +10,33 @@ MINT_GREEN = 0xA8F0C6
 PALE_YELLOW = 0xFFF4B8
 WEEKLY_PASTEL = 0xD9E8FF
 
-def shorten(text, limit=300):
+def shorten(text, limit=200):
     if not text:
         return ""
     if len(text) <= limit:
         return text
     return text[:limit].rsplit(" ", 1)[0] + "…"
 
-def center(text):
-    return text
 
 def build_embed(item):
     emoji = random.choice(SOFT_EMOJIS)
-    title = center(f"✦ {item['title']} {emoji} ✦")
+    title = f"✦ {item['title']} {emoji} ✦"
 
     # Apply gradient overlay + caching
     gradient_poster = apply_black_gradient_overlay(item["poster"]) if item["poster"] else None
 
-    # Cinematic description block
+    # Compact, Discord-safe description
     desc = (
-    f"**{item['country_code']} • {item['category']} • {item['status'].capitalize()}**\n"
-    f"Ep: {item['episode_count'] or '—'} • Next: {item['next_ep_date'] or '—'}\n\n"
-    f"*{shorten(item.get('overview', ''), 200)}*"
-  )
+        f"**{item['country_code']} • {item['category']} • {item['status'].capitalize()}**\n"
+        f"Ep: {item['episode_count'] or '—'} • Next: {item['next_ep_date'] or '—'}\n\n"
+        f"*{shorten(item.get('overview', ''), 200)}*"
+    )
 
     embed = {
         "title": title,
         "url": item["url"],
-        "color": MINT_GREEN,  # Always mint green for the new aesthetic
-        "description": description,
+        "color": MINT_GREEN,
+        "description": desc,
         "image": {"url": gradient_poster} if gradient_poster else {},
         "footer": {"text": "Updated automatically • Wei Wei Feed"}
     }
