@@ -291,4 +291,114 @@ def build_item(entry, kind):
         "category": category,
     }
 
-# ------------------------------------------------
+# ---------------------------------------------------------
+# Discover logic with debug prints
+# ---------------------------------------------------------
+
+def _discover_by_keywords(kind, max_pages=5):
+    results = []
+    seen_ids = set()
+
+    keyword_query = "|".join(BL_KEYWORD_IDS + GL_KEYWORD_IDS)
+
+    for page in range(1, max_pages + 1):
+        time.sleep(0.3)
+
+        params = {
+            "include_adult": False,
+            "sort_by": "popularity.desc",
+            "with_genres": "18,10749",
+            "page": page,
+            "with_keywords": keyword_query,
+        }
+
+        data = tmdb_get(f"/discover/{kind}", **params)
+        if not data or "results" not in data:
+            break
+
+        for entry in data["results"]:
+            eid = entry["id"]
+            if eid in seen_ids:
+                continue
+            seen_ids.add(eid)
+            results.append(entry)
+
+    return results
+
+
+def _discover_by_networks(kind, max_pages=5):
+    results = []
+    seen_ids = set()
+
+    network_query = "|".join(NETWORK_IDS)
+
+    for page in range(1, max_pages + 1):
+        time.sleep(0.3)
+
+        params = {
+            "include_adult": False,
+            "sort_by": "popularity.desc",
+            "with_genres": "18,10749",
+            "page": page,
+            "with_networks": network_query,
+        }
+
+        data = tmdb_get(f"/discover/{kind}", **params)
+        if not data or "results" not in data:
+            break
+
+        for entry in data["results"]:
+            eid = entry["id"]
+            if eid in seen_ids:
+                continue
+            seen_ids.add(eid)
+            results.append(entry)
+
+    return results
+
+
+def discover_candidates(kind, max_pages=5):
+    print(f"\n=== DISCOVER {kind.upper()} START ===")
+
+    by_kw = _discover_by_keywords(kind, max_pages=max_pages)
+    by_net = _discover_by_networks(kind, max_pages=max_pages)
+
+    print(f"[{kind}] discover_by_keywords: {len(by_kw)}")
+    print(f"[{kind}] discover_by_networks: {len(by_net)}")
+
+    combined = []
+    seen_ids = set()
+
+    for entry in by_kw + by_net:
+        eid = entry["id"]
+        if eid in seen_ids:
+            continue
+        seen_ids.add(eid)
+        combined.append(entry)
+
+    print(f"[{kind}] combined unique discover results: {len(combined)}")
+
+    results = []
+    for entry in combined:
+        item = build_item(entry, kind)
+        if item:
+            results.append(item)
+
+    print(f"[{kind}] FINAL ITEMS AFTER build_item: {len(results)}")
+    print(f"=== DISCOVER {kind.upper()} END ===\n")
+
+    return results
+
+# ---------------------------------------------------------
+# Public fetchers
+# ---------------------------------------------------------
+
+def fetch_bl_items():
+    tv_items = discover_candidates("tv")
+    movie_items = discover_candidates("movie")
+    return [i for i in tv_items + movie_items if i["category"] == "bl"]
+
+def fetch_gl_items():
+    tv_items = discover_candidates("tv")
+    movie_items = discover_candidates("movie")
+    return [i for i in tv_items + movie_items if i["category"] == "gl"]
