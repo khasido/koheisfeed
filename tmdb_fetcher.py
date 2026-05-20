@@ -265,22 +265,32 @@ def build_item(entry_id, kind):
 # HTML SCRAPER (10 pages, early stop)
 # ---------------------------------------------------------
 
+MAX_PAGES = 3  # TEMP: keep this small while we debug
+
 def scrape_keyword_pages(keyword_id, slug, kind):
     ids = set()
 
-    for page in range(1, 11):
+    for page in range(1, MAX_PAGES + 1):
         url = f"https://www.themoviedb.org/keyword/{keyword_id}-{slug}/{kind}?page={page}"
+        print(f"[{kind}] scraping keyword {keyword_id} page {page}...")
+
         html = fetch_html(url)
         if not html:
+            print(f"[{kind}] keyword {keyword_id} page {page}: no html, stopping")
             break
 
         page_ids = set(map(int, re.findall(r'/'+kind+r'/(\d+)', html)))
+        print(f"[{kind}] keyword {keyword_id} page {page}: found {len(page_ids)} ids")
+
         if not page_ids:
+            print(f"[{kind}] keyword {keyword_id} page {page}: empty, stopping")
             break
 
         ids |= page_ids
 
+    print(f"[{kind}] keyword {keyword_id}: total unique ids {len(ids)}")
     return list(ids)
+
 
 # ---------------------------------------------------------
 # MAIN DISCOVERY
