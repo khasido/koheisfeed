@@ -3,12 +3,12 @@ import requests
 import random
 from datetime import datetime, timezone, timedelta
 from rss_parser import parse_feed_items
-from image_utils import apply_cinematic_overlay
 
 SOFT_EMOJIS = ["🌙", "💫", "⭐", "🌸", "🕊️", "✨"]
 MINT_GREEN = 0xA8F0C6
 PALE_YELLOW = 0xFFF4B8
 WEEKLY_PASTEL = 0xD9E8FF
+
 
 def shorten(text, limit=200):
     if not text:
@@ -22,15 +22,12 @@ def build_embed(item):
     emoji = random.choice(SOFT_EMOJIS)
     title = f"✦ {item['title']} {emoji} ✦"
 
-    # Build cinematic card
-    card_path = apply_cinematic_overlay(item)
-
     embed = {
         "title": title,
         "url": item["url"],
         "color": MINT_GREEN,
-        "description": "",  # No metadata here — it's on the image
-        "image": {"url": card_path},
+        "description": shorten(item.get("overview", ""), 300),
+        "image": {"url": item["poster"]},  # TMDB URL — valid for Discord
         "footer": {"text": "Updated automatically • Wei Wei Feed"}
     }
 
