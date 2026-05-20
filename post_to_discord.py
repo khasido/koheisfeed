@@ -40,11 +40,16 @@ def build_embed(item):
 
 def discord_post(webhook_url, payload):
     r = requests.post(webhook_url, json=payload)
+
+    # Discord returns 204 No Content unless ?wait=true is used
     if r.status_code in (200, 204):
         try:
-            return r.json()["id"]
+            data = r.json()
+            return data.get("id")
         except:
+            # No JSON returned → message posted successfully, but no ID available
             return None
+
     return None
 
 def discord_edit(webhook_url, message_id, payload):
