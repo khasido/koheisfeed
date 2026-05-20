@@ -18,26 +18,21 @@ def shorten(text, limit=200):
     return text[:limit].rsplit(" ", 1)[0] + "…"
 
 
+from image_utils import apply_cinematic_overlay
+
 def build_embed(item):
     emoji = random.choice(SOFT_EMOJIS)
     title = f"✦ {item['title']} {emoji} ✦"
 
-    # Apply gradient overlay + caching
-    gradient_poster = apply_black_gradient_overlay(item["poster"]) if item["poster"] else None
-
-    # Compact, Discord-safe description
-    desc = (
-        f"**{item['country_code']} • {item['category']} • {item['status'].capitalize()}**\n"
-        f"Ep: {item['episode_count'] or '—'} • Next: {item['next_ep_date'] or '—'}\n\n"
-        f"*{shorten(item.get('overview', ''), 200)}*"
-    )
+    # Build cinematic card
+    card_path = apply_cinematic_overlay(item)
 
     embed = {
         "title": title,
         "url": item["url"],
         "color": MINT_GREEN,
-        "description": desc,
-        "image": {"url": gradient_poster} if gradient_poster else {},
+        "description": "",  # No metadata here — it's on the image
+        "image": {"url": card_path},
         "footer": {"text": "Updated automatically • Wei Wei Feed"}
     }
 
