@@ -1,10 +1,8 @@
-# update.py — UPDATED FOR NEW SCRAPER LOGIC
+# update.py — UPDATED FOR NEW AESTHETIC EMBEDS + PATCHED FETCHER
 import os
-from pathlib import Path
-from datetime import datetime
+from datetime import datetime, date
 
 from tmdb_fetcher import fetch_bl_items, fetch_gl_items
-from rss_builder import build_rss
 from state_manager import (
     load_state, save_state, has_changed,
     update_state_entry, get_message_id, remove_entry
@@ -13,37 +11,44 @@ from post_to_discord import post_or_update
 
 print(">>> UPDATE.PY STARTED")
 
+# ---------------------------------------------------------
+# SORTING LOGIC (UPDATED FOR ISO DATES)
+# ---------------------------------------------------------
+
 def sort_key(item):
     """
     Sorting rules:
     1. Asian priority first (item["priority"] == True)
-    2. Earliest next episode date
+    2. Earliest next episode date (ISO format)
     3. Alphabetical title
     """
 
     # Priority: Asian = 0, others = 1
     priority = 0 if item.get("priority") else 1
 
-    # Parse next episode date
-    if item["next_ep_date"]:
-        try:
-            dt = datetime.strptime(item["next_ep_date"], "%b %d, %Y")
-        except:
-            dt = datetime.max
-    else:
+    # next_ep_date is now ISO (YYYY-MM-DD)
+    try:
+        dt = datetime.fromisoformat(item["next_ep_date"]) if item["next_ep_date"] else datetime.max
+    except:
         dt = datetime.max
 
     return (priority, dt, item["title"].lower())
 
 
+# ---------------------------------------------------------
+# PROCESS FEED
+# ---------------------------------------------------------
+
 def process_feed(items, state, webhook_url, state_path):
     print(">>> PROCESSING FEED, ITEMS:", len(items))
 
     filtered = []
+    today = date.today()
+
     for it in items:
 
-        # Must have BL or GL category
-        if it["category"] not in ("bl", "gl"):
+        # Category now uppercase ("BL"/"GL")
+        if it["category"] not in ("BL", "GL"):
             continue
 
         # Must not be ended
@@ -56,10 +61,9 @@ def process_feed(items, state, webhook_url, state_path):
 
         # Movies: ensure release date is in the future
         if it["episode_count"] is None and it["status"] == "upcoming":
-            # Already handled by fetcher, but double-check
             try:
-                d = datetime.strptime(it["next_ep_date"], "%b %d, %Y").date()
-                if d <= datetime.today().date():
+                d = datetime.fromisoformat(it["next_ep_date"]).date()
+                if d <= today:
                     continue
             except:
                 continue
@@ -67,9 +71,9 @@ def process_feed(items, state, webhook_url, state_path):
         filtered.append(it)
 
     items = filtered
-    print(">>> PROCESSING FEED, ITEMS AFTER FILTER:", len(items))
+    print(">>> ITEMS AFTER FILTER:", len(items))
 
-    # Sort using new priority logic
+    # Sort using updated logic
     items.sort(key=sort_key)
 
     # Track which IDs still exist
@@ -97,6 +101,10 @@ def process_feed(items, state, webhook_url, state_path):
 
     save_state(state_path, state)
 
+
+# ---------------------------------------------------------
+# MAIN
+# ---------------------------------------------------------
 
 def main():
     bl_webhook = os.getenv("DISCORD_WEBHOOK_BL")

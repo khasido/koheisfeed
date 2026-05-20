@@ -3,6 +3,7 @@ import requests
 import random
 from datetime import datetime, timezone, timedelta
 from rss_parser import parse_feed_items
+from image_utils import apply_black_gradient_overlay   # ← NEW IMPORT
 
 SOFT_EMOJIS = ["🌙", "💫", "⭐", "🌸", "🕊️", "✨"]
 MINT_GREEN = 0xA8F0C6
@@ -14,22 +15,27 @@ def center(text):
 
 def build_embed(item):
     emoji = random.choice(SOFT_EMOJIS)
-    title = center(f"{item['title']} {emoji}")
+    title = center(f"✦ {item['title']} {emoji} ✦")
 
-    fields = [
-        {"name": "🌍 Country", "value": item["country_code"] or "—", "inline": True},
-        {"name": "🎞️ Episodes", "value": str(item["episode_count"] or "—"), "inline": True},
-        {"name": "⏳ Next Episode", "value": item["next_ep_date"] or "—", "inline": True},
-        {"name": "📡 Status", "value": item["status"].title(), "inline": True},
-    ]
+    # Apply gradient overlay + caching
+    gradient_poster = apply_black_gradient_overlay(item["poster"]) if item["poster"] else None
+
+    # Cinematic description block
+    description = (
+        f"**{item['country_code']} • {item['category'].upper()} • {item['status'].capitalize()}**\n\n"
+        f"**Episodes:** {item['episode_count'] or '—'}\n"
+        f"**Next Episode:** {item['next_ep_date'] or '—'}\n"
+        f"**Status:** {item['status'].capitalize()}\n\n"
+        f"*{item.get('overview', '')}*"
+    )
 
     embed = {
         "title": title,
         "url": item["url"],
-        "color": MINT_GREEN if item["status"] == "ongoing" else PALE_YELLOW,
-        "fields": fields,
-        "image": {"url": item["poster"]} if item["poster"] else {},
-        "footer": {"text": "🔗 View on TMDB"}
+        "color": MINT_GREEN,  # Always mint green for the new aesthetic
+        "description": description,
+        "image": {"url": gradient_poster} if gradient_poster else {},
+        "footer": {"text": "Updated automatically • Wei Wei Feed"}
     }
 
     return embed
@@ -40,7 +46,7 @@ def build_embed(item):
 
 def discord_post(webhook_url, payload):
     r = requests.post(webhook_url, json=payload)
-    
+
     print("STATUS:", r.status_code)
     print("RESPONSE:", r.text)
 
@@ -50,7 +56,6 @@ def discord_post(webhook_url, payload):
             data = r.json()
             return data.get("id")
         except:
-            # No JSON returned → message posted successfully, but no ID available
             return None
 
     return None
@@ -80,6 +85,7 @@ def post_or_update(item, webhook_url, message_id):
             }
         ]
     }
+
     print("WEBHOOK URL:", webhook_url)
     print("PAYLOAD:", payload)
 

@@ -1,5 +1,4 @@
-# tmdb_fetcher.py — FINAL SCRAPER VERSION (10 pages, early stop, all countries allowed)
-
+# tmdb_fetcher.py — FINAL PATCHED VERSION
 import os
 import re
 import time
@@ -160,10 +159,10 @@ def analyze_season(tmdb_id, season_number):
 
         if d > TODAY and next_ep_number is None:
             next_ep_number = ep_num
-            next_ep_date = d.strftime("%b %d, %Y")
+            next_ep_date = d.isoformat()  # PATCHED: ISO format
         if d <= TODAY:
             last_ep_number = ep_num
-            last_ep_date = d.strftime("%b %d, %Y")
+            last_ep_date = d.isoformat()  # PATCHED: ISO format
 
     status = "ongoing" if next_ep_number else "ended"
 
@@ -190,7 +189,10 @@ def build_item(entry_id, kind):
 
     credits = details.get("credits") or {}
 
-    # Country (ALL allowed)
+    # Overview (PATCHED)
+    overview = details.get("overview") or details.get("tagline") or ""
+
+    # Country
     if kind == "tv":
         origin = details.get("origin_country") or []
         country = origin[0] if origin else None
@@ -237,7 +239,7 @@ def build_item(entry_id, kind):
             return None
 
         next_ep_number = None
-        next_ep_date = d.strftime("%b %d, %Y")
+        next_ep_date = d.isoformat()  # PATCHED: ISO format
         ep_total = None
         status = "upcoming"
 
@@ -252,20 +254,20 @@ def build_item(entry_id, kind):
         "title": title,
         "url": url,
         "poster": f"https://image.tmdb.org/t/p/w500{details['poster_path']}" if details.get("poster_path") else None,
-        "country_code": country,
+        "overview": overview,  # PATCHED
+        "country_code": country or "—",  # PATCHED
         "priority": priority,
         "episode_count": ep_total,
         "next_ep_number": next_ep_number,
         "next_ep_date": next_ep_date,
         "status": status,
-        "category": category,
+        "category": category.upper(),  # PATCHED
     }
 
 # ---------------------------------------------------------
 # HTML SCRAPER (10 pages, early stop)
 # ---------------------------------------------------------
 
-# How many pages to scrape per keyword
 MAX_PAGES = 5
 
 def scrape_keyword_pages(keyword_id, slug, kind):
@@ -280,11 +282,9 @@ def scrape_keyword_pages(keyword_id, slug, kind):
             print(f"[{kind}] keyword {keyword_id} page {page}: no html, stopping")
             break
 
-        # Extract TMDB IDs from the page
         page_ids = set(map(int, re.findall(r'/' + kind + r'/(\d+)', html)))
         print(f"[{kind}] keyword {keyword_id} page {page}: found {len(page_ids)} ids")
 
-        # Early stop if page is empty
         if not page_ids:
             print(f"[{kind}] keyword {keyword_id} page {page}: empty, stopping")
             break
@@ -293,7 +293,6 @@ def scrape_keyword_pages(keyword_id, slug, kind):
 
     print(f"[{kind}] keyword {keyword_id}: total unique ids {len(ids)}")
     return list(ids)
-
 
 # ---------------------------------------------------------
 # MAIN DISCOVERY
@@ -315,7 +314,6 @@ def discover_candidates(kind):
         if item:
             results.append(item)
 
-    # Sort: priority countries first, then by next episode date
     results.sort(key=lambda x: (not x["priority"], x["next_ep_date"]))
 
     return results
@@ -327,9 +325,10 @@ def discover_candidates(kind):
 def fetch_bl_items():
     tv_items = discover_candidates("tv")
     movie_items = discover_candidates("movie")
-    return [i for i in tv_items + movie_items if i["category"] == "bl"]
+    return [i for i in tv_items + movie_items if i["category"] == "BL"]
 
 def fetch_gl_items():
     tv_items = discover_candidates("tv")
     movie_items = discover_candidates("movie")
-    return [i for i in tv_items + movie_items if i["category"] == "gl"]
+    return [i for i in tv_items + movie_items if i["category"] == "GL"]
+
