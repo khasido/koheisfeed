@@ -23,6 +23,36 @@
       "next_ep_number": 11,
       "status": "ongoing",
       "discord_message_id": null
+    },
+    "315172": {
+      "next_ep_date": "May 21, 2026",
+      "next_ep_number": 10,
+      "status": "ongoing",
+      "discord_message_id": null
+    },
+    "308260": {
+      "next_ep_date": "May 22, 2026",
+      "next_ep_number": 5,
+      "status": "ongoing",
+      "discord_message_id": null
+    },
+    "312583": {
+      "next_ep_date": "May 22, 2026",
+      "next_ep_number": 8,
+      "status": "ongoing",
+      "discord_message_id": null
+    },
+    "286069": {
+      "next_ep_date": "May 23, 2026",
+      "next_ep_number": 2,
+      "status": "ongoing",
+      "discord_message_id": null
+    },
+    "308254": {
+      "next_ep_date": "May 27, 2026",
+      "next_ep_number": 4,
+      "status": "ongoing",
+      "discord_message_id": null
     }
   }
 }
