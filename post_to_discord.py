@@ -18,8 +18,6 @@ def shorten(text, limit=200):
     return text[:limit].rsplit(" ", 1)[0] + "…"
 
 
-from image_utils import apply_cinematic_overlay
-
 def build_embed(item):
     emoji = random.choice(SOFT_EMOJIS)
     title = f"✦ {item['title']} {emoji} ✦"
@@ -37,6 +35,7 @@ def build_embed(item):
     }
 
     return embed
+
 
 # -----------------------------
 # Discord API helpers
@@ -58,13 +57,16 @@ def discord_post(webhook_url, payload):
 
     return None
 
+
 def discord_edit(webhook_url, message_id, payload):
     url = webhook_url + f"/messages/{message_id}"
     requests.patch(url, json=payload)
 
+
 def discord_delete(webhook_url, message_id):
     url = webhook_url + f"/messages/{message_id}"
     requests.delete(url)
+
 
 # -----------------------------
 # Main posting logic
