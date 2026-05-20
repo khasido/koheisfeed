@@ -1,4 +1,4 @@
-# tmdb_fetcher.py — DIAGNOSTIC HTML SCRAPER VERSION
+# tmdb_fetcher.py — FINAL SCRAPER VERSION (10 pages, early stop, all countries allowed)
 
 import os
 import re
@@ -13,7 +13,7 @@ SESSION = requests.Session()
 SESSION.headers.update({"Accept": "application/json"})
 
 # ---------------------------------------------------------
-# HARD‑CODED KEYWORD IDs + SLUGS (needed for HTML URLs)
+# KEYWORD IDS + SLUGS
 # ---------------------------------------------------------
 
 BL_KEYWORDS = {
@@ -46,9 +46,8 @@ def tmdb_get(path, **params):
             r = SESSION.get(f"{BASE_URL}{path}", params=params, timeout=30)
             r.raise_for_status()
             return r.json()
-        except Exception as e:
+        except:
             if attempt == 4:
-                print(f"❌ TMDB API ERROR on {path}: {e}")
                 return None
             time.sleep(0.5)
     return None
@@ -59,9 +58,8 @@ def fetch_html(url):
             r = SESSION.get(url, timeout=30)
             r.raise_for_status()
             return r.text
-        except Exception as e:
+        except:
             if attempt == 4:
-                print(f"❌ HTML FETCH ERROR on {url}: {e}")
                 return None
             time.sleep(0.5)
     return None
@@ -143,12 +141,10 @@ def classify_bl_gl(details, credits):
 def analyze_season(tmdb_id, season_number):
     season = tmdb_get(f"/tv/{tmdb_id}/season/{season_number}")
     if not season or "episodes" not in season:
-        print(f"[tv] reject {tmdb_id}: no season data")
         return None
 
     episodes = sorted(season["episodes"], key=lambda e: e.get("episode_number", 0))
     if not episodes:
-        print(f"[tv] reject {tmdb_id}: empty episodes")
         return None
 
     next_ep_number = None
@@ -185,17 +181,16 @@ def analyze_season(tmdb_id, season_number):
 
 def build_item(entry_id, kind):
     tmdb_id = entry_id
-    time.sleep(0.2)
+    time.sleep(0.15)
 
     append = "keywords,credits" + (",seasons" if kind == "tv" else "")
     details = tmdb_get(f"/{kind}/{tmdb_id}", append_to_response=append)
     if not details:
-        print(f"[{kind}] reject {tmdb_id}: no details")
         return None
 
     credits = details.get("credits") or {}
 
-    # Country
+    # Country (ALL allowed)
     if kind == "tv":
         origin = details.get("origin_country") or []
         country = origin[0] if origin else None
@@ -203,20 +198,14 @@ def build_item(entry_id, kind):
         pc = details.get("production_countries") or []
         country = pc[0].get("iso_3166_1") if pc else None
 
-    if not country:
-        print(f"[{kind}] reject {tmdb_id}: no country")
-        return None
-
     # Date window
     date_str = details.get("first_air_date") if kind == "tv" else details.get("release_date")
     if not in_date_window(date_str):
-        print(f"[{kind}] reject {tmdb_id}: date {date_str}")
         return None
 
     # BL/GL classification
     category = classify_bl_gl(details, credits)
     if category not in ("bl", "gl"):
-        print(f"[{kind}] reject {tmdb_id}: not BL/GL")
         return None
 
     # TV logic
@@ -224,7 +213,6 @@ def build_item(entry_id, kind):
         seasons = details.get("seasons") or []
         valid = [s for s in seasons if s.get("season_number", 0) > 0]
         if not valid:
-            print(f"[tv] reject {tmdb_id}: no valid seasons")
             return None
 
         season_number = max(s["season_number"] for s in valid)
@@ -233,11 +221,9 @@ def build_item(entry_id, kind):
             return None
 
         if season_info["status"] == "ended":
-            print(f"[tv] reject {tmdb_id}: ended")
             return None
 
         if not season_info["next_ep_date"]:
-            print(f"[tv] reject {tmdb_id}: no next ep date")
             return None
 
         next_ep_number = season_info["next_ep_number"]
@@ -248,7 +234,6 @@ def build_item(entry_id, kind):
     else:
         d = parse_date(date_str)
         if not d or d <= TODAY:
-            print(f"[movie] reject {tmdb_id}: movie already released")
             return None
 
         next_ep_number = None
@@ -259,7 +244,8 @@ def build_item(entry_id, kind):
     title = details.get("name") or details.get("title")
     url = f"https://www.themoviedb.org/{kind}/{tmdb_id}"
 
-    print(f"[{kind}] ACCEPT {tmdb_id}: {title}")
+    # Priority flag
+    priority = country in PRIORITY_COUNTRIES if country else False
 
     return {
         "id": tmdb_id,
@@ -267,6 +253,7 @@ def build_item(entry_id, kind):
         "url": url,
         "poster": f"https://image.tmdb.org/t/p/w500{details['poster_path']}" if details.get("poster_path") else None,
         "country_code": country,
+        "priority": priority,
         "episode_count": ep_total,
         "next_ep_number": next_ep_number,
         "next_ep_date": next_ep_date,
@@ -275,22 +262,24 @@ def build_item(entry_id, kind):
     }
 
 # ---------------------------------------------------------
-# HTML SCRAPER FOR KEYWORD PAGES
+# HTML SCRAPER (10 pages, early stop)
 # ---------------------------------------------------------
 
-def scrape_keyword_page(keyword_id, slug, kind):
-    url = f"https://www.themoviedb.org/keyword/{keyword_id}-{slug}/{kind}"
-    print(f"\n>>> SCRAPING HTML: {url}")
+def scrape_keyword_pages(keyword_id, slug, kind):
+    ids = set()
 
-    html = fetch_html(url)
-    if not html:
-        print(f"[{kind}] keyword {keyword_id}: HTML fetch failed")
-        return []
+    for page in range(1, 11):
+        url = f"https://www.themoviedb.org/keyword/{keyword_id}-{slug}/{kind}?page={page}"
+        html = fetch_html(url)
+        if not html:
+            break
 
-    # Extract TMDB IDs from HTML
-    ids = set(map(int, re.findall(r'/'+kind+r'/(\d+)', html)))
+        page_ids = set(map(int, re.findall(r'/'+kind+r'/(\d+)', html)))
+        if not page_ids:
+            break
 
-    print(f"[{kind}] keyword {keyword_id}: FOUND {len(ids)} IDs in HTML")
+        ids |= page_ids
+
     return list(ids)
 
 # ---------------------------------------------------------
@@ -298,18 +287,14 @@ def scrape_keyword_page(keyword_id, slug, kind):
 # ---------------------------------------------------------
 
 def discover_candidates(kind):
-    print(f"\n=== DISCOVER VIA HTML ({kind.upper()}) START ===")
-
     combined = set()
 
     keyword_map = {**BL_KEYWORDS, **GL_KEYWORDS}
 
     for kw, slug in keyword_map.items():
-        ids = scrape_keyword_page(kw, slug, kind)
+        ids = scrape_keyword_pages(kw, slug, kind)
         for i in ids:
             combined.add(i)
-
-    print(f"[{kind}] TOTAL UNIQUE IDS FROM HTML: {len(combined)}")
 
     results = []
     for entry_id in combined:
@@ -317,8 +302,8 @@ def discover_candidates(kind):
         if item:
             results.append(item)
 
-    print(f"[{kind}] FINAL ITEMS AFTER build_item: {len(results)}")
-    print(f"=== DISCOVER VIA HTML ({kind.upper()}) END ===\n")
+    # Sort: priority countries first, then by next episode date
+    results.sort(key=lambda x: (not x["priority"], x["next_ep_date"]))
 
     return results
 
