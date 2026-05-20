@@ -32,9 +32,7 @@ def build_embed(item):
     f"**{item['country_code']} • {item['category']} • {item['status'].capitalize()}**\n"
     f"Ep: {item['episode_count'] or '—'} • Next: {item['next_ep_date'] or '—'}\n\n"
     f"*{shorten(item.get('overview', ''), 200)}*"
-)
-
-    )
+  )
 
     embed = {
         "title": title,
