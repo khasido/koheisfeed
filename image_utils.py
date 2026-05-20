@@ -8,7 +8,6 @@ from PIL import Image, ImageDraw, ImageFont
 CACHE_DIR = "cache/posters"
 os.makedirs(CACHE_DIR, exist_ok=True)
 
-# Bold display font (Montserrat-like)
 # Built‑in fonts available on GitHub Actions
 FONT_TITLE = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 48)
 FONT_META  = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 32)
@@ -67,8 +66,20 @@ def apply_cinematic_overlay(item):
     # -----------------------------
     # TEXT BLOCKS
     # -----------------------------
+    title = f"✦ {item['title']} ✦"
+    meta1 = f"{item['country_code']} • {item['category']} • {item['status'].capitalize()}"
+    meta2 = f"Ep {item['episode_count'] or '—'} • Next {item['next_ep_date'] or '—'}"
 
-        # Title (centered)
+    desc_raw = item.get("overview", "")
+    desc_clipped = desc_raw[:350].rsplit(" ", 1)[0] + "…"
+    wrapped = textwrap.fill(desc_clipped, width=50)
+
+    # -----------------------------
+    # POSITIONING
+    # -----------------------------
+    base_y = int(H * 0.70)
+
+    # Title
     tw, th = measure_text(draw, title, FONT_TITLE)
     draw.text(((W - tw) / 2, base_y), title, font=FONT_TITLE, fill="white")
 
@@ -82,37 +93,10 @@ def apply_cinematic_overlay(item):
     mw2, mh2 = measure_text(draw, meta2, FONT_META)
     draw.text(((W - mw2) / 2, y3), meta2, font=FONT_META, fill="white")
 
-    # Description (justified block)
+    # Description block
     y4 = y3 + mh2 + 20
     for line in wrapped.split("\n"):
         lw, lh = measure_text(draw, line, FONT_DESC)
-        draw.text(((W - lw) / 2, y4), line, font=FONT_DESC, fill="white")
-        y4 += lh + 4
-
-    # -----------------------------
-    # POSITIONING
-    # -----------------------------
-    # We draw text starting from 70% down the image
-    base_y = int(H * 0.70)
-
-    # Title (centered)
-    tw, th = draw.textsize(title, font=FONT_TITLE)
-    draw.text(((W - tw) / 2, base_y), title, font=FONT_TITLE, fill="white")
-
-    # Metadata line 1
-    y2 = base_y + th + 10
-    mw1, mh1 = draw.textsize(meta1, font=FONT_META)
-    draw.text(((W - mw1) / 2, y2), meta1, font=FONT_META, fill="white")
-
-    # Metadata line 2
-    y3 = y2 + mh1 + 5
-    mw2, mh2 = draw.textsize(meta2, font=FONT_META)
-    draw.text(((W - mw2) / 2, y3), meta2, font=FONT_META, fill="white")
-
-    # Description (justified block)
-    y4 = y3 + mh2 + 20
-    for line in wrapped.split("\n"):
-        lw, lh = draw.textsize(line, font=FONT_DESC)
         draw.text(((W - lw) / 2, y4), line, font=FONT_DESC, fill="white")
         y4 += lh + 4
 
