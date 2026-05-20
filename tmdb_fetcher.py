@@ -2,6 +2,7 @@
 import os
 import time
 import requests
+import re
 
 TMDB_API_KEY = os.getenv("TMDB_API_KEY")
 BASE_URL = "https://api.themoviedb.org/3"
@@ -9,16 +10,9 @@ BASE_URL = "https://api.themoviedb.org/3"
 SESSION = requests.Session()
 SESSION.headers.update({"Accept": "application/json"})
 
-# ----------------------------------------
-# TMDB keyword IDs (OR logic using "|")
-# ----------------------------------------
-
-BL_KEYWORDS = "210024|158718|210025|210026"  # BL, gay romance, fudanshi, fujoshi
-GL_KEYWORDS = "12377|210027"  # lesbian, GL
-
-# ----------------------------------------
-# Robust TMDB GET with retries + timeout
-# ----------------------------------------
+# ---------------------------------------------------------
+# Retry logic + timeout
+# ---------------------------------------------------------
 
 def tmdb_get(path, **params):
     params["api_key"] = TMDB_API_KEY
@@ -40,26 +34,152 @@ def tmdb_get(path, **params):
 
     return None
 
-# ----------------------------------------
-# Build item from TMDB details
-# ----------------------------------------
+# ---------------------------------------------------------
+# BL/GL detection signals
+# ---------------------------------------------------------
 
-def build_item_from_tmdb(entry, kind):
+BL_KEYWORDS = {
+    "boys love", "bl", "gay", "mlm", "queer", "same-sex",
+    "gay romance", "gay relationship", "male couple"
+}
+
+GL_KEYWORDS = {
+    "girls love", "gl", "lesbian", "wlw", "yuri", "sapphic",
+    "female couple", "women love"
+}
+
+BL_STUDIOS = {
+    "GMMTV", "Studio Wabi Sabi", "Mandee", "WeTV", "iQIYI",
+    "TV Asahi", "Line TV", "TV Thunder"
+}
+
+GL_STUDIOS = {
+    "GagaOOLala", "Fuji TV", "TBS", "NHK"
+}
+
+PRIORITY_COUNTRIES = ["TH", "JP", "KR", "CN", "TW", "PH", "VN", "HK", "MY"]
+
+# ---------------------------------------------------------
+# Utility: normalize text
+# ---------------------------------------------------------
+
+def normalize(text):
+    if not text:
+        return ""
+    return text.lower().strip()
+
+# ---------------------------------------------------------
+# Deep inspection classifier
+# ---------------------------------------------------------
+
+def classify_lgbtq(details, credits):
+    overview = normalize(details.get("overview", ""))
+    title = normalize(details.get("name") or details.get("title") or "")
+    country = details.get("origin_country", [""])[0]
+    networks = [n.get("name", "") for n in details.get("networks", [])]
+    studios = [s.get("name", "") for s in details.get("production_companies", [])]
+
+    # -----------------------------
+    # STRONG SIGNALS
+    # -----------------------------
+
+    strong = 0
+    weak = 0
+
+    # 1. Overview text
+    if any(word in overview for word in BL_KEYWORDS):
+        strong += 1
+        bl_flag = True
+    elif any(word in overview for word in GL_KEYWORDS):
+        strong += 1
+        bl_flag = False
+    else:
+        bl_flag = None
+
+    # 2. Cast gender pairing
+    cast = credits.get("cast", [])
+    male_leads = [c for c in cast if c.get("gender") == 2][:2]
+    female_leads = [c for c in cast if c.get("gender") == 1][:2]
+
+    if len(male_leads) >= 2:
+        strong += 1
+        bl_flag = True
+
+    if len(female_leads) >= 2:
+        strong += 1
+        bl_flag = False
+
+    # 3. Studio/network
+    if any(s in BL_STUDIOS for s in studios + networks):
+        strong += 1
+        bl_flag = True
+
+    if any(s in GL_STUDIOS for s in studios + networks):
+        strong += 1
+        bl_flag = False
+
+    # -----------------------------
+    # WEAK SIGNALS
+    # -----------------------------
+
+    # 4. Country
+    if country in PRIORITY_COUNTRIES:
+        weak += 1
+
+    # 5. Title patterns
+    if re.search(r"\bbl\b", title) or "boys love" in title:
+        weak += 1
+        bl_flag = True
+
+    if re.search(r"\bgl\b", title) or "girls love" in title or "yuri" in title:
+        weak += 1
+        bl_flag = False
+
+    # 6. Genres
+    genres = [g["name"].lower() for g in details.get("genres", [])]
+    if "romance" in genres:
+        weak += 1
+
+    # ---------------------------------------------------------
+    # DECISION RULE
+    # ---------------------------------------------------------
+
+    # Must have at least 1 strong signal OR 1 strong + 2 weak
+    if strong >= 1:
+        return "bl" if bl_flag else "gl"
+
+    if strong == 0 and weak >= 3:
+        return "bl" if bl_flag else "gl"
+
+    return None
+
+# ---------------------------------------------------------
+# Build item
+# ---------------------------------------------------------
+
+def build_item(entry, kind):
     tmdb_id = entry["id"]
 
     time.sleep(0.3)
 
     details = tmdb_get(
         f"/{kind}/{tmdb_id}",
-        append_to_response="next_episode_to_air,last_episode_to_air"
+        append_to_response="next_episode_to_air,last_episode_to_air,credits"
     )
 
     if not details:
         return None
 
-    # Skip ended/canceled shows entirely
+    # Skip ended shows
     status_raw = details.get("status", "").lower()
     if status_raw in ["ended", "canceled", "cancelled"]:
+        return None
+
+    credits = details.get("credits", {})
+
+    # Classify BL/GL
+    category = classify_lgbtq(details, credits)
+    if category not in ["bl", "gl"]:
         return None
 
     title = details.get("name") or details.get("title")
@@ -69,17 +189,14 @@ def build_item_from_tmdb(entry, kind):
     if details.get("poster_path"):
         poster = f"https://image.tmdb.org/t/p/w500{details['poster_path']}"
 
-    # Country
     country = None
     if "origin_country" in details and details["origin_country"]:
         country = details["origin_country"][0]
 
-    # Episode count (TV only)
     ep_total = None
     if kind == "tv":
         ep_total = details.get("number_of_episodes")
 
-    # Next episode info
     next_ep = details.get("next_episode_to_air")
     next_ep_number = None
     next_ep_date = None
@@ -94,11 +211,7 @@ def build_item_from_tmdb(entry, kind):
             except:
                 next_ep_date = air_date
 
-    # Status
-    if next_ep_number:
-        status = "ongoing"
-    else:
-        status = "upcoming"
+    status = "ongoing" if next_ep_number else "upcoming"
 
     return {
         "id": tmdb_id,
@@ -110,20 +223,21 @@ def build_item_from_tmdb(entry, kind):
         "next_ep_number": next_ep_number,
         "next_ep_date": next_ep_date,
         "status": status,
+        "category": category
     }
 
-# ----------------------------------------
-# Discover items by TMDB keyword IDs (OR logic)
-# ----------------------------------------
+# ---------------------------------------------------------
+# Broad discovery
+# ---------------------------------------------------------
 
-def discover_by_keywords(kind, keyword_ids):
+def discover_candidates(kind):
     time.sleep(0.3)
 
     data = tmdb_get(
         f"/discover/{kind}",
-        with_keywords=keyword_ids,  # OR logic using |
         include_adult=False,
-        sort_by="popularity.desc"
+        sort_by="popularity.desc",
+        with_genres="18,10749"  # Drama + Romance
     )
 
     if not data or "results" not in data:
@@ -131,22 +245,22 @@ def discover_by_keywords(kind, keyword_ids):
 
     results = []
     for entry in data["results"]:
-        item = build_item_from_tmdb(entry, kind)
+        item = build_item(entry, kind)
         if item:
             results.append(item)
 
     return results
 
-# ----------------------------------------
+# ---------------------------------------------------------
 # Public fetchers
-# ----------------------------------------
+# ---------------------------------------------------------
 
 def fetch_bl_items():
-    tv_items = discover_by_keywords("tv", BL_KEYWORDS)
-    movie_items = discover_by_keywords("movie", BL_KEYWORDS)
-    return tv_items + movie_items
+    tv_items = discover_candidates("tv")
+    movie_items = discover_candidates("movie")
+    return [i for i in tv_items + movie_items if i["category"] == "bl"]
 
 def fetch_gl_items():
-    tv_items = discover_by_keywords("tv", GL_KEYWORDS)
-    movie_items = discover_by_keywords("movie", GL_KEYWORDS)
-    return tv_items + movie_items
+    tv_items = discover_candidates("tv")
+    movie_items = discover_candidates("movie")
+    return [i for i in tv_items + movie_items if i["category"] == "gl"]
