@@ -68,7 +68,7 @@ def apply_cinematic_overlay(item):
     # TEXT BLOCKS
     # -----------------------------
 
-    # Title (centered)
+        # Title (centered)
     tw, th = measure_text(draw, title, FONT_TITLE)
     draw.text(((W - tw) / 2, base_y), title, font=FONT_TITLE, fill="white")
 
@@ -82,12 +82,12 @@ def apply_cinematic_overlay(item):
     mw2, mh2 = measure_text(draw, meta2, FONT_META)
     draw.text(((W - mw2) / 2, y3), meta2, font=FONT_META, fill="white")
 
-    #Description (justified block)
+    # Description (justified block)
     y4 = y3 + mh2 + 20
     for line in wrapped.split("\n"):
-    lw, lh = measure_text(draw, line, FONT_DESC)
-    draw.text(((W - lw) / 2, y4), line, font=FONT_DESC, fill="white")
-    y4 += lh + 4
+        lw, lh = measure_text(draw, line, FONT_DESC)
+        draw.text(((W - lw) / 2, y4), line, font=FONT_DESC, fill="white")
+        y4 += lh + 4
 
     # -----------------------------
     # POSITIONING
