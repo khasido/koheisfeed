@@ -29,9 +29,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-
       - name: Run updater
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
