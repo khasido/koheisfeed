@@ -1,4 +1,4 @@
-# tmdb_fetcher.py
+# tmdb_fetcher.py (DIAGNOSTIC VERSION)
 import os
 import time
 import requests
@@ -9,6 +9,10 @@ BASE_URL = "https://api.themoviedb.org/3"
 
 SESSION = requests.Session()
 SESSION.headers.update({"Accept": "application/json"})
+
+# ---------------------------------------------------------
+# HARD‑CODED KEYWORD + NETWORK IDs
+# ---------------------------------------------------------
 
 BL_KEYWORD_IDS = ["240305", "289844", "265777", "347855"]
 GL_KEYWORD_IDS = ["280003", "9833", "315382"]
@@ -23,6 +27,9 @@ TODAY = date.today()
 SIX_MONTHS_AGO = TODAY - timedelta(days=6 * 30)
 TWO_YEARS_AHEAD = TODAY + timedelta(days=2 * 365)
 
+# ---------------------------------------------------------
+# TMDB GET
+# ---------------------------------------------------------
 
 def tmdb_get(path, **params):
     params["api_key"] = TMDB_API_KEY
@@ -36,13 +43,17 @@ def tmdb_get(path, **params):
             )
             resp.raise_for_status()
             return resp.json()
-        except Exception:
+        except Exception as e:
             if attempt == 4:
-                raise
+                print(f"❌ TMDB ERROR on {path}: {e}")
+                return None
             time.sleep(0.5)
 
     return None
 
+# ---------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------
 
 def parse_date(dstr):
     if not dstr:
@@ -51,7 +62,6 @@ def parse_date(dstr):
         return datetime.strptime(dstr, "%Y-%m-%d").date()
     except Exception:
         return None
-
 
 def in_date_window(dstr):
     d = parse_date(dstr)
@@ -62,7 +72,6 @@ def in_date_window(dstr):
     if d > TWO_YEARS_AHEAD:
         return False
     return True
-
 
 def extract_keywords(details):
     kw_block = details.get("keywords") or {}
@@ -78,11 +87,13 @@ def extract_keywords(details):
 
     return []
 
-
 def extract_keyword_names(details):
     kws = extract_keywords(details)
     return {(k.get("name") or "").lower().strip() for k in kws if k.get("name")}
 
+# ---------------------------------------------------------
+# BL / GL classification
+# ---------------------------------------------------------
 
 def classify_bl_gl(details, credits):
     kw_names = extract_keyword_names(details)
@@ -125,14 +136,19 @@ def classify_bl_gl(details, credits):
 
     return None
 
+# ---------------------------------------------------------
+# Season-level inspection
+# ---------------------------------------------------------
 
 def analyze_season(tmdb_id, season_number):
     season = tmdb_get(f"/tv/{tmdb_id}/season/{season_number}")
     if not season or "episodes" not in season:
+        print(f"[tv] reject {tmdb_id}: no season data")
         return None
 
     episodes = season["episodes"]
     if not episodes:
+        print(f"[tv] reject {tmdb_id}: empty episodes")
         return None
 
     episodes = sorted(episodes, key=lambda e: e.get("episode_number", 0))
@@ -171,6 +187,9 @@ def analyze_season(tmdb_id, season_number):
         "status": status,
     }
 
+# ---------------------------------------------------------
+# Build normalized item (with debug prints)
+# ---------------------------------------------------------
 
 def build_item(entry, kind):
     tmdb_id = entry["id"]
@@ -183,10 +202,12 @@ def build_item(entry, kind):
 
     details = tmdb_get(f"/{kind}/{tmdb_id}", append_to_response=append)
     if not details:
+        print(f"[{kind}] reject {tmdb_id}: no details")
         return None
 
     credits = details.get("credits") or {}
 
+    # Country
     if kind == "tv":
         origin = details.get("origin_country") or []
         country = origin[0] if origin else None
@@ -195,20 +216,27 @@ def build_item(entry, kind):
         country = countries[0].get("iso_3166_1") if countries else None
 
     if not country or country not in PRIORITY_COUNTRIES:
+        print(f"[{kind}] reject {tmdb_id}: country {country}")
         return None
 
+    # Date window
     first_date_str = details.get("first_air_date") if kind == "tv" else details.get("release_date")
     if not in_date_window(first_date_str):
+        print(f"[{kind}] reject {tmdb_id}: date {first_date_str}")
         return None
 
+    # BL/GL classification
     category = classify_bl_gl(details, credits)
     if category not in ("bl", "gl"):
+        print(f"[{kind}] reject {tmdb_id}: not BL/GL")
         return None
 
+    # TV logic
     if kind == "tv":
         seasons = details.get("seasons") or []
         valid_seasons = [s for s in seasons if s.get("season_number", 0) > 0]
         if not valid_seasons:
+            print(f"[tv] reject {tmdb_id}: no valid seasons")
             return None
 
         season_number = max(s["season_number"] for s in valid_seasons)
@@ -217,6 +245,11 @@ def build_item(entry, kind):
             return None
 
         if season_info["status"] == "ended":
+            print(f"[tv] reject {tmdb_id}: ended")
+            return None
+
+        if not season_info["next_ep_date"]:
+            print(f"[tv] reject {tmdb_id}: no next ep date")
             return None
 
         next_ep_number = season_info["next_ep_number"]
@@ -225,16 +258,16 @@ def build_item(entry, kind):
         ep_total = season_info["last_ep_number"]
 
     else:
+        # Movies
         d = parse_date(first_date_str)
-        next_ep_number = None
-        next_ep_date = None
-        ep_total = None
+        if not d or d <= TODAY:
+            print(f"[movie] reject {tmdb_id}: movie already released")
+            return None
 
-        if d and d > TODAY:
-            status = "upcoming"
-            next_ep_date = d.strftime("%b %d, %Y")
-        else:
-            return None  # released movies are not allowed
+        next_ep_number = None
+        next_ep_date = d.strftime("%b %d, %Y")
+        ep_total = None
+        status = "upcoming"
 
     title = details.get("name") or details.get("title")
     url = f"https://www.themoviedb.org/{kind}/{tmdb_id}"
@@ -242,6 +275,8 @@ def build_item(entry, kind):
     poster = None
     if details.get("poster_path"):
         poster = f"https://image.tmdb.org/t/p/w500{details['poster_path']}"
+
+    print(f"[{kind}] ACCEPT {tmdb_id}: {title}")
 
     return {
         "id": tmdb_id,
@@ -256,100 +291,4 @@ def build_item(entry, kind):
         "category": category,
     }
 
-
-def _discover_by_keywords(kind, max_pages=5):
-    results = []
-    seen_ids = set()
-
-    keyword_ids = BL_KEYWORD_IDS + GL_KEYWORD_IDS
-    keyword_query = "|".join(keyword_ids)
-
-    for page in range(1, max_pages + 1):
-        time.sleep(0.3)
-
-        params = {
-            "include_adult": False,
-            "sort_by": "popularity.desc",
-            "with_genres": "18,10749",
-            "page": page,
-            "with_keywords": keyword_query,
-        }
-
-        data = tmdb_get(f"/discover/{kind}", **params)
-        if not data or "results" not in data or not data["results"]:
-            break
-
-        for entry in data["results"]:
-            eid = entry["id"]
-            if eid in seen_ids:
-                continue
-            seen_ids.add(eid)
-            results.append(entry)
-
-    return results
-
-
-def _discover_by_networks(kind, max_pages=5):
-    results = []
-    seen_ids = set()
-
-    network_query = "|".join(NETWORK_IDS)
-
-    for page in range(1, max_pages + 1):
-        time.sleep(0.3)
-
-        params = {
-            "include_adult": False,
-            "sort_by": "popularity.desc",
-            "with_genres": "18,10749",
-            "page": page,
-            "with_networks": network_query,
-        }
-
-        data = tmdb_get(f"/discover/{kind}", **params)
-        if not data or "results" not in data or not data["results"]:
-            break
-
-        for entry in data["results"]:
-            eid = entry["id"]
-            if eid in seen_ids:
-                continue
-            seen_ids.add(eid)
-            results.append(entry)
-
-    return results
-
-
-def discover_candidates(kind, max_pages=5):
-    combined = []
-    seen_ids = set()
-
-    by_kw = _discover_by_keywords(kind, max_pages=max_pages)
-    by_net = _discover_by_networks(kind, max_pages=max_pages)
-
-    for entry in by_kw + by_net:
-        eid = entry["id"]
-        if eid in seen_ids:
-            continue
-        seen_ids.add(eid)
-        combined.append(entry)
-
-    results = []
-    for entry in combined:
-        item = build_item(entry, kind)
-        if item:
-            results.append(item)
-
-    return results
-
-
-def fetch_bl_items():
-    tv_items = discover_candidates("tv")
-    movie_items = discover_candidates("movie")
-    return [i for i in tv_items + movie_items if i["category"] == "bl"]
-
-
-def fetch_gl_items():
-    tv_items = discover_candidates("tv")
-    movie_items = discover_candidates("movie")
-    return [i for i in tv_items + movie_items if i["category"] == "gl"]
+# ------------------------------------------------
