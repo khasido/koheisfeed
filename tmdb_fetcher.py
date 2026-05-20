@@ -447,8 +447,3 @@ def debug_show(tmdb_id, kind="tv"):
             print("❌ No valid seasons found.")
 
     print("================ END DEBUG ======================\n")
-<<<<<<< HEAD
-
-
-=======
->>>>>>> f4ce469ca25b62bee21f8ea87077987a47e70cdb
