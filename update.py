@@ -31,8 +31,7 @@ def sort_key(item):
     return (priority, dt, item["title"].lower())
 
 def process_feed(items, state, webhook_url, state_path):
-        
-        print(">>> PROCESSING FEED, ITEMS:", len(items))
+    print(">>> PROCESSING FEED, ITEMS:", len(items))
 # HARD FILTER: remove anything that should not be posted
     filtered = []
     for it in items:
@@ -55,7 +54,8 @@ def process_feed(items, state, webhook_url, state_path):
         filtered.append(it)
 
     items = filtered
-
+    print(">>> PROCESSING FEED, ITEMS AFTER FILTER:", len(items))
+    
     items.sort(key=sort_key)
 
     # Track which IDs still exist
@@ -77,6 +77,7 @@ def process_feed(items, state, webhook_url, state_path):
         msg_id = get_message_id(state, sid)
 
         if msg_id is None or changed:
+            print(">>> POST_OR_UPDATE CALLED FOR:", it["title"])
             new_id = post_or_update(it, webhook_url, msg_id)
             update_state_entry(state, it, new_id)
 
