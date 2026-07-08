@@ -25,8 +25,8 @@
       "discord_message_id": null
     },
     "310708": {
-      "next_ep_date": "Jul 08, 2026",
-      "next_ep_number": 2,
+      "next_ep_date": "Jul 15, 2026",
+      "next_ep_number": 3,
       "status": "ongoing",
       "discord_message_id": null
     },
@@ -39,6 +39,12 @@
     "326579": {
       "next_ep_date": "Jul 11, 2026",
       "next_ep_number": 3,
+      "status": "ongoing",
+      "discord_message_id": null
+    },
+    "117120": {
+      "next_ep_date": "Jul 14, 2026",
+      "next_ep_number": 2,
       "status": "ongoing",
       "discord_message_id": null
     }
