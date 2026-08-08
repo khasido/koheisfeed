@@ -1,8 +1,8 @@
 {
   "items": {
     "315083": {
-      "next_ep_date": "Aug 08, 2026",
-      "next_ep_number": 8,
+      "next_ep_date": "Aug 15, 2026",
+      "next_ep_number": 9,
       "status": "ongoing",
       "discord_message_id": null
     },
@@ -55,14 +55,14 @@
       "discord_message_id": null
     },
     "325110": {
-      "next_ep_date": "Aug 08, 2026",
-      "next_ep_number": 2,
+      "next_ep_date": "Aug 15, 2026",
+      "next_ep_number": 3,
       "status": "ongoing",
       "discord_message_id": null
     },
     "323563": {
-      "next_ep_date": "Aug 08, 2026",
-      "next_ep_number": 5,
+      "next_ep_date": "Aug 15, 2026",
+      "next_ep_number": 6,
       "status": "ongoing",
       "discord_message_id": null
     },
@@ -75,6 +75,12 @@
     "329635": {
       "next_ep_date": "Aug 14, 2026",
       "next_ep_number": 5,
+      "status": "ongoing",
+      "discord_message_id": null
+    },
+    "325294": {
+      "next_ep_date": "Aug 11, 2026",
+      "next_ep_number": 1,
       "status": "ongoing",
       "discord_message_id": null
     }
