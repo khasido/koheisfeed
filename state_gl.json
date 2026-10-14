@@ -30,27 +30,21 @@
       "status": "ongoing",
       "discord_message_id": null
     },
-    "307427": {
-      "next_ep_date": "Nov 07, 2026",
-      "next_ep_number": 1,
-      "status": "ongoing",
-      "discord_message_id": null
-    },
     "327493": {
       "next_ep_date": "Oct 16, 2026",
       "next_ep_number": 6,
       "status": "ongoing",
       "discord_message_id": null
     },
-    "307831": {
-      "next_ep_date": "Oct 21, 2026",
-      "next_ep_number": 1,
-      "status": "ongoing",
-      "discord_message_id": null
-    },
     "320695": {
       "next_ep_date": "Oct 17, 2026",
       "next_ep_number": 6,
+      "status": "ongoing",
+      "discord_message_id": null
+    },
+    "315142": {
+      "next_ep_date": "Oct 17, 2026",
+      "next_ep_number": 7,
       "status": "ongoing",
       "discord_message_id": null
     }
