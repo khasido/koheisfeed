@@ -6,12 +6,6 @@
       "status": "ongoing",
       "discord_message_id": null
     },
-    "330048": {
-      "next_ep_date": "Oct 16, 2026",
-      "next_ep_number": 9,
-      "status": "ongoing",
-      "discord_message_id": null
-    },
     "284825": {
       "next_ep_date": "Oct 17, 2026",
       "next_ep_number": 8,
@@ -30,12 +24,6 @@
       "status": "ongoing",
       "discord_message_id": null
     },
-    "332528": {
-      "next_ep_date": "Oct 21, 2026",
-      "next_ep_number": 7,
-      "status": "ongoing",
-      "discord_message_id": null
-    },
     "318634": {
       "next_ep_date": "Oct 22, 2026",
       "next_ep_number": 3,
@@ -45,12 +33,6 @@
     "317326": {
       "next_ep_date": "Oct 16, 2026",
       "next_ep_number": 4,
-      "status": "ongoing",
-      "discord_message_id": null
-    },
-    "335052": {
-      "next_ep_date": "Oct 18, 2026",
-      "next_ep_number": 3,
       "status": "ongoing",
       "discord_message_id": null
     },
@@ -66,8 +48,14 @@
       "status": "ongoing",
       "discord_message_id": null
     },
-    "306611": {
-      "next_ep_date": "Oct 18, 2026",
+    "333121": {
+      "next_ep_date": "Oct 19, 2026",
+      "next_ep_number": 3,
+      "status": "ongoing",
+      "discord_message_id": null
+    },
+    "239384": {
+      "next_ep_date": "Oct 21, 2026",
       "next_ep_number": 2,
       "status": "ongoing",
       "discord_message_id": null
