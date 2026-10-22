@@ -48,15 +48,15 @@
       "status": "ongoing",
       "discord_message_id": null
     },
-    "332507": {
-      "next_ep_date": "Oct 23, 2026",
-      "next_ep_number": 23,
-      "status": "ongoing",
-      "discord_message_id": null
-    },
     "335052": {
       "next_ep_date": "Oct 25, 2026",
       "next_ep_number": 4,
+      "status": "ongoing",
+      "discord_message_id": null
+    },
+    "330370": {
+      "next_ep_date": "Oct 27, 2026",
+      "next_ep_number": 2,
       "status": "ongoing",
       "discord_message_id": null
     }
