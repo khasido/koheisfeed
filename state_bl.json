@@ -29,6 +29,12 @@
       "next_ep_number": 5,
       "status": "ongoing",
       "discord_message_id": null
+    },
+    "312585": {
+      "next_ep_date": "Nov 06, 2026",
+      "next_ep_number": 8,
+      "status": "ongoing",
+      "discord_message_id": null
     }
   }
 }
