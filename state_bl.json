@@ -1,8 +1,8 @@
 {
   "items": {
     "317326": {
-      "next_ep_date": "Nov 26, 2026",
-      "next_ep_number": 15,
+      "next_ep_date": "Nov 29, 2026",
+      "next_ep_number": 16,
       "status": "ongoing",
       "discord_message_id": null
     },
@@ -27,6 +27,12 @@
     "306609": {
       "next_ep_date": "Nov 30, 2026",
       "next_ep_number": 2,
+      "status": "ongoing",
+      "discord_message_id": null
+    },
+    "325519": {
+      "next_ep_date": "Dec 02, 2026",
+      "next_ep_number": 3,
       "status": "ongoing",
       "discord_message_id": null
     }
